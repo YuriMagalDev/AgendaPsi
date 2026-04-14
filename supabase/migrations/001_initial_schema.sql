@@ -50,7 +50,7 @@ create table sessoes (
   pago boolean not null default false,
   data_pagamento date,
   remarcada_para timestamptz,
-  sessao_origem_id uuid references sessoes(id),
+  sessao_origem_id uuid references sessoes(id) on delete set null,
   criado_em timestamptz not null default now(),
   constraint sessao_must_have_paciente_or_avulso
     check (paciente_id is not null or avulso_nome is not null)
@@ -122,3 +122,11 @@ create policy "auth users full access" on regras_repasse for all to authenticate
 create policy "auth users full access" on repasses for all to authenticated using (true) with check (true);
 create policy "auth users full access" on confirmacoes_whatsapp for all to authenticated using (true) with check (true);
 create policy "auth users full access" on config_psicologo for all to authenticated using (true) with check (true);
+
+-- Indexes for foreign key performance
+create index idx_contratos_paciente_id on contratos(paciente_id);
+create index idx_sessoes_paciente_id on sessoes(paciente_id);
+create index idx_sessoes_modalidade_id on sessoes(modalidade_id);
+create index idx_sessoes_data_hora on sessoes(data_hora);
+create index idx_repasses_sessao_id on repasses(sessao_id);
+create index idx_confirmacoes_whatsapp_sessao_id on confirmacoes_whatsapp(sessao_id);
