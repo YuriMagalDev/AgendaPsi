@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/yurig/Documents/Antigravity/Psicologo log --oneline -10)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:21st.dev)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(npm create *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(git commit *)",
+      "Bash(npx tailwindcss *)",
+      "Bash(npx shadcn@latest *)"
+    ]
+  }
+}
