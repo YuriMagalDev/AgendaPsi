@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, LayoutKanban, Users, BarChart2, Settings } from 'lucide-react'
+import { Calendar, Kanban, Users, BarChart2, Settings } from 'lucide-react'
 
 const navItems = [
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
-  { to: '/kanban', icon: LayoutKanban, label: 'Kanban' },
+  { to: '/kanban', icon: Kanban, label: 'Kanban' },
   { to: '/pacientes', icon: Users, label: 'Pacientes' },
   { to: '/financeiro', icon: BarChart2, label: 'Financeiro' },
   { to: '/configuracoes', icon: Settings, label: 'Config.' },
