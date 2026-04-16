@@ -110,5 +110,6 @@ describe('usePacienteDetalhe', () => {
 
     expect(updateSpy).toHaveBeenCalledWith({ ativo: false })
     expect(eqSpy).toHaveBeenCalledWith('id', 'p-1')
+    expect(result.current.paciente?.ativo).toBe(false)
   })
 })
