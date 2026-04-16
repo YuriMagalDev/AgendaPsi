@@ -1,10 +1,22 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 
 export function ProtectedRoute() {
   const { session, loading } = useAuth()
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null)
 
-  if (loading) {
+  useEffect(() => {
+    if (!session) return
+    supabase
+      .from('config_psicologo')
+      .select('id')
+      .maybeSingle()
+      .then(({ data }) => setOnboardingDone(data !== null))
+  }, [session])
+
+  if (loading || (session && onboardingDone === null)) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -12,5 +24,7 @@ export function ProtectedRoute() {
     )
   }
 
-  return session ? <Outlet /> : <Navigate to="/login" replace />
+  if (!session) return <Navigate to="/login" replace />
+  if (!onboardingDone) return <Navigate to="/onboarding" replace />
+  return <Outlet />
 }

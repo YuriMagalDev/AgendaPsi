@@ -1,67 +1,67 @@
-# Psicologo — Plataforma de Gestão para Psicólogos
+# Psicologo — Management Platform for Psychologists
 
-## O que é este projeto
+## What is this project
 
-Aplicativo web para um psicólogo gerir agendamentos, confirmações de sessões e financeiro em um único lugar. Pensado para uso pessoal (um único usuário). Construído para web hoje, com migração para mobile via Capacitor no futuro.
+Web application for a psychologist to manage scheduling, session confirmations, and financials in one single place. Designed for personal use (a single user). Built for the web today, with future migration to mobile via Capacitor.
 
-O spec completo de design está em: `docs/superpowers/specs/2026-04-14-psicologo-design.md`
+The complete design spec is at: `docs/superpowers/specs/2026-04-14-psicologo-design.md`
 
 ---
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
 | Frontend | React + Vite + TypeScript + TailwindCSS |
-| Mobile (futuro) | Capacitor |
+| Mobile (future) | Capacitor |
 | Backend / DB | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
-| Automação WhatsApp | Evolution API (self-hosted em VPS próprio) |
+| WhatsApp Automation | Evolution API (self-hosted on own VPS) |
 
 ---
 
-## Módulos principais
+## Main Modules
 
-1. **Autenticação** — login email/senha via Supabase Auth
-2. **Pacientes** — cadastro focado em agendamento e cobrança (sem prontuário clínico)
-3. **Agenda** — duas visões: Kanban por status e Agenda por dia
-4. **Atendimentos Avulsos** — sessões sem paciente cadastrado, convertíveis em paciente
-5. **Checklist Fim de Dia** — atualização em lote do status das sessões do dia
-6. **WhatsApp (opcional)** — lembretes D-1 com botão sim/não via Evolution API
-7. **Financeiro** — receita mensal, por paciente, repasses, inadimplência e projeção
-8. **Configurações** — modalidades, horários, conexão WhatsApp
-
----
-
-## Decisões de arquitetura
-
-- Frontend fala diretamente com Supabase via `supabase-js` para todo CRUD
-- Evolution API é acessada exclusivamente via Edge Functions (credenciais nunca no frontend)
-- Ao criar conta, Edge Function provisiona automaticamente uma instância Evolution API — o psicólogo só escaneia o QR Code
-- Supabase Realtime mantém o Kanban atualizado em tempo real quando chega confirmação via WhatsApp
-- Automação WhatsApp é **opcional** — app funciona completamente sem ela
+1. **Authentication** — email/password login via Supabase Auth
+2. **Patients** — registration focused on scheduling and billing (no clinical records)
+3. **Schedule** — two views: Kanban by status and daily Agenda
+4. **Standalone Sessions (Avulsos)** — sessions without a registered patient, convertible into a patient
+5. **End of Day Checklist** — batch status update of the day's sessions
+6. **WhatsApp (optional)** — D-1 reminders with yes/no button via Evolution API
+7. **Financials** — monthly revenue, by patient, revenue sharing, defaults, and projection
+8. **Settings** — modalities, schedules, WhatsApp connection
 
 ---
 
-## Modelo de dados (resumo)
+## Architecture Decisions
 
-- `pacientes` — cadastro básico (nome, telefone, email, data de nascimento)
-- `modalidades` — personalizáveis (Presencial, Online + customizadas)
-- `contratos` — forma de cobrança por paciente: por sessão, pacote ou mensal
-- `sessoes` — cada atendimento; suporta paciente cadastrado ou avulso; status: agendada / confirmada / concluida / faltou / cancelada / remarcada
-- `regras_repasse` — regras globais de repasse (ex: "20% para clínica"); fixo ou percentual
-- `repasses` — registros gerados por sessão a partir das regras; rastreia se foi pago
-- `confirmacoes_whatsapp` — log dos lembretes enviados e respostas recebidas
-- `config_psicologo` — configurações globais da conta
+- Frontend talks directly to Supabase via `supabase-js` for all CRUD
+- Evolution API is accessed exclusively via Edge Functions (credentials never in the frontend)
+- Upon account creation, Edge Function automatically provisions an Evolution API instance — the psychologist just scans the QR Code
+- Supabase Realtime keeps the Kanban updated in real-time when WhatsApp confirmation arrives
+- WhatsApp Automation is **optional** — the app works completely without it
 
 ---
 
-## Rotas do app
+## Data Model (summary)
+
+- `pacientes` — basic registration (name, phone, email, date of birth)
+- `modalidades` — customizable (In-person, Online + custom)
+- `contratos` — billing method per patient: per session, package, or monthly
+- `sessoes` — each appointment; supports registered or standalone patients; statuses: agendada (scheduled) / confirmada (confirmed) / concluida (completed) / faltou (missed) / cancelada (canceled) / remarcada (rescheduled)
+- `regras_repasse` — global revenue sharing rules (e.g. "20% to clinic"); fixed or percentage
+- `repasses` — records generated per session based on the rules; tracks if it was paid
+- `confirmacoes_whatsapp` — log of reminders sent and replies received
+- `config_psicologo` — global account settings
+
+---
+
+## App Routes
 
 ```
 /login
 /onboarding
 
-/agenda           (padrão)
+/agenda           (default)
 /kanban
 /checklist
 
@@ -77,65 +77,76 @@ O spec completo de design está em: `docs/superpowers/specs/2026-04-14-psicologo
 
 ---
 
-## Fora do escopo
+## Out of Scope
 
-- Prontuário clínico (anotações de sessão, diagnósticos, medicações)
-- Multi-usuário / multi-clínica / SaaS
-- Portal do paciente (paciente não acessa o app)
-- Integração com convênios
+- Clinical records (session notes, diagnoses, medications)
+- Multi-user / multi-clinic / SaaS
+- Patient portal (patient does not access the app)
+- Health insurance integration
 
 ---
 
 ## Design System
 
-### Conceito
-*"Consultório digital"* — quente, organizado, humano. Estética de consultório bem cuidado: sem frieza clínica, sem excesso de cor corporativa.
+### Concept
+*"Digital office"* — warm, organized, human. Aesthetic of a well-kept office: lacking clinical coldness, without excess corporate color.
 
-### Paleta de cores (CSS variables)
+### Color Palette (CSS variables)
 ```css
---bg:            #F7F5F2   /* fundo geral — off-white quente */
---surface:       #FFFFFF   /* cards, modais, painéis */
---primary:       #2D6A6A   /* teal escuro — botões, ícones ativos */
+--bg:            #F7F5F2   /* main background — warm off-white */
+--surface:       #FFFFFF   /* cards, modals, panels */
+--primary:       #2D6A6A   /* dark teal — buttons, active icons */
 --primary-light: #E8F4F4   /* badges, highlights */
---accent:        #C17F59   /* âmbar terroso — alertas, status faltou */
---text:          #1C1C1C   /* texto principal */
---muted:         #7A7A7A   /* texto secundário, labels */
---border:        #E4E0DA   /* bordas, divisores */
+--accent:        #C17F59   /* earthy amber — alerts, missed session status */
+--text:          #1C1C1C   /* main text */
+--muted:         #7A7A7A   /* secondary text, labels */
+--border:        #E4E0DA   /* borders, dividers */
 ```
 
-### Status das sessões (cores dos cards Kanban)
-| Status | Cor da borda esquerda |
+### Session Status (Kanban card colors)
+| Status | Left border color |
 |---|---|
-| `agendada` | cinza `#9CA3AF` |
+| `agendada` | grey `#9CA3AF` |
 | `confirmada` | teal `#2D6A6A` |
-| `concluida` | verde `#4CAF82` |
-| `faltou` | âmbar `#C17F59` |
-| `cancelada` | vermelho suave `#E07070` |
-| `remarcada` | roxo suave `#9B7EC8` |
+| `concluida` | green `#4CAF82` |
+| `faltou` | amber `#C17F59` |
+| `cancelada` | soft red `#E07070` |
+| `remarcada` | soft purple `#9B7EC8` |
 
-### Tipografia
-- **Display / headings:** Fraunces (serif com personalidade, transmite confiança)
-- **Corpo / UI:** DM Sans (humanista, legível, moderna)
-- **Números financeiros / código:** DM Mono
+### Typography
+- **Display / headings:** Fraunces (serif with personality, conveys trust)
+- **Body / UI:** DM Sans (humanist, legible, modern)
+- **Financial numbers / code:** DM Mono
 
-### Componentes base
-- Cards: `border-radius: 12px`, sombra sutil, indicador de status na borda esquerda
-- Bottom navigation (mobile): ícones + label, tab ativa com pill indicator
-- Formulários: labels acima do campo, sem placeholders como substituto de label
+### Base Components
+- Cards: `border-radius: 12px`, subtle shadow, status indicator on the left border
+- Bottom navigation (mobile): icons + label, active tab with pill indicator
+- Forms: labels above field, no placeholders acting as label substitutes
 
-### Bibliotecas de UI
+### UI Libraries
 1. **shadcn/ui** — base: Dialog, Select, Calendar, Table, Toast, Drawer
-2. **21st.dev** — cards de dashboard, Kanban, componentes de seções
-3. **Recharts** — gráficos do módulo financeiro
+2. **21st.dev** — dashboard cards, Kanban, section components
+3. **Recharts** — financial module charts
 
 ---
 
-## Convenções de desenvolvimento
+## Language
 
-- TypeScript estrito em todo o projeto
-- Componentes React funcionais com hooks
-- Supabase como única fonte de verdade — sem estado global complexo (Zustand/Redux)
-- Edge Functions em TypeScript (Deno runtime do Supabase)
-- TailwindCSS para estilos — sem CSS modules ou styled-components
-- Nomes de arquivos: kebab-case para componentes e páginas
-- Variáveis de ambiente: nunca commitar `.env` — usar `.env.example` como referência
+**All user-facing text must be in Portuguese (pt-BR).** This includes:
+- Labels, buttons, headings, placeholders, error messages
+- Empty states, confirmation dialogs, loading text
+- Status labels and any other UI copy
+
+This applies to all pages, components, and subagent implementations. If a plan or spec shows code examples with English strings, **translate them to Portuguese** — the project language always wins over the example language.
+
+---
+
+## Development Conventions
+
+- Strict TypeScript throughout the project
+- Functional React components with hooks
+- Supabase as the single source of truth — no complex global state (Zustand/Redux)
+- Edge Functions in TypeScript (Supabase Deno runtime)
+- TailwindCSS for styles — no CSS modules or styled-components
+- File names: kebab-case for components and pages
+- Environment variables: never commit `.env` — use `.env.example` as a reference

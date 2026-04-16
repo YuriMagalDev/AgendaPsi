@@ -1,9 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import type { Session, User } from '@supabase/supabase-js'
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: '1' }, error: null }),
+    })),
+  },
+}))
 
 function renderWithAuth(authenticated: boolean) {
   const contextValue = {
@@ -17,6 +26,7 @@ function renderWithAuth(authenticated: boolean) {
       <MemoryRouter initialEntries={['/protected']}>
         <Routes>
           <Route path="/login" element={<div>Login Page</div>} />
+          <Route path="/onboarding" element={<div>Onboarding Page</div>} />
           <Route element={<ProtectedRoute />}>
             <Route path="/protected" element={<div>Protected Content</div>} />
           </Route>
@@ -27,9 +37,9 @@ function renderWithAuth(authenticated: boolean) {
 }
 
 describe('ProtectedRoute', () => {
-  it('renders children when authenticated', () => {
+  it('renders children when authenticated and onboarding done', async () => {
     renderWithAuth(true)
-    expect(screen.getByText('Protected Content')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Protected Content')).toBeInTheDocument())
   })
 
   it('redirects to /login when not authenticated', () => {
