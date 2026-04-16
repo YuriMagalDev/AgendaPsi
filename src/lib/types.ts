@@ -89,3 +89,7 @@ export interface ConfigPsicologo {
   evolution_token: string | null
   whatsapp_conectado: boolean
 }
+
+export type SessaoComModalidade = Sessao & {
+  modalidades: { nome: string } | null
+}
