@@ -14,30 +14,48 @@ export function usePacienteDetalhe(id: string) {
   const [sessoes, setSessoes] = useState<SessaoComModalidade[]>([])
   const [contrato, setContrato] = useState<Contrato | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
 
     async function fetchAll() {
-      const [pacienteRes, sessoesRes, contratoRes] = await Promise.all([
-        supabase.from('pacientes').select('*').eq('id', id).single(),
-        supabase
-          .from('sessoes')
-          .select('*, modalidades(nome)')
-          .eq('paciente_id', id)
-          .order('data_hora', { ascending: false }),
-        supabase
-          .from('contratos')
-          .select('*')
-          .eq('paciente_id', id)
-          .eq('ativo', true)
-          .maybeSingle(),
-      ])
+      try {
+        const [pacienteRes, sessoesRes, contratoRes] = await Promise.all([
+          supabase.from('pacientes').select('*').eq('id', id).single(),
+          supabase
+            .from('sessoes')
+            .select('*, modalidades(nome)')
+            .eq('paciente_id', id)
+            .order('data_hora', { ascending: false }),
+          supabase
+            .from('contratos')
+            .select('*')
+            .eq('paciente_id', id)
+            .eq('ativo', true)
+            .maybeSingle(),
+        ])
 
-      setPaciente(pacienteRes.data)
-      setSessoes((sessoesRes.data ?? []) as SessaoComModalidade[])
-      setContrato(contratoRes.data)
-      setLoading(false)
+        if (pacienteRes.error) {
+          setError(pacienteRes.error.message)
+          return
+        }
+        if (sessoesRes.error) {
+          setError(sessoesRes.error.message)
+          return
+        }
+        if (contratoRes.error) {
+          setError(contratoRes.error.message)
+          return
+        }
+
+        setError(null)
+        setPaciente(pacienteRes.data)
+        setSessoes((sessoesRes.data ?? []) as SessaoComModalidade[])
+        setContrato(contratoRes.data)
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchAll()
@@ -58,7 +76,8 @@ export function usePacienteDetalhe(id: string) {
       .update({ ativo: false })
       .eq('id', id)
     if (error) throw error
+    setPaciente(prev => prev ? { ...prev, ativo: false } : null)
   }
 
-  return { paciente, sessoes, contrato, stats, loading, arquivar }
+  return { paciente, sessoes, contrato, stats, loading, error, arquivar }
 }
