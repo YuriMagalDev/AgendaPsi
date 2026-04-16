@@ -34,7 +34,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 export function PacienteDetalhePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { paciente, sessoes, contrato, stats, loading, arquivar } = usePacienteDetalhe(id!)
+  const { paciente, sessoes, contrato, stats, loading, arquivar, error } = usePacienteDetalhe(id!)
 
   async function handleArquivar() {
     if (!window.confirm(`Archive ${paciente?.nome}? The session history will be kept.`)) return
@@ -50,6 +50,17 @@ export function PacienteDetalhePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-sm text-[#E07070] mb-2">Error loading patient data.</p>
+        <Link to="/pacientes" className="text-primary text-sm hover:underline">
+          Back to Patients
+        </Link>
       </div>
     )
   }
