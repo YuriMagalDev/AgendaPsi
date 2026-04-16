@@ -4,12 +4,6 @@ import { Plus, Search, ChevronRight, UserRound } from 'lucide-react'
 import { usePacientes } from '@/hooks/usePacientes'
 import type { Paciente } from '@/lib/types'
 
-const contratoLabel: Record<string, string> = {
-  por_sessao: 'Per session',
-  pacote: 'Package',
-  mensal: 'Monthly',
-}
-
 function PacienteCard({ paciente }: { paciente: Paciente }) {
   return (
     <Link
@@ -45,11 +39,12 @@ export function PacientesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Patients</h1>
-        <Link to="/pacientes/novo">
-          <button className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-            <Plus size={16} />
-            New
-          </button>
+        <Link
+          to="/pacientes/novo"
+          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          <Plus size={16} />
+          New
         </Link>
       </div>
 
