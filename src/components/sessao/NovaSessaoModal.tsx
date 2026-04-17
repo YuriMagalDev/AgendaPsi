@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,7 +39,7 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
   const { modalidades } = useModalidades()
   const [serverError, setServerError] = useState<string | null>(null)
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       tipo: 'paciente',
@@ -48,6 +48,20 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
   })
 
   const tipo = watch('tipo')
+
+  const pacienteId = watch('paciente_id')
+
+  const pacienteSelecionado = pacientes.find(p => p.id === pacienteId) ?? null
+  const isConvenio = pacienteSelecionado?.tipo === 'convenio'
+  const convenioValor = (pacienteSelecionado as any)?.convenios?.valor_sessao ?? null
+
+  useEffect(() => {
+    if (isConvenio && convenioValor != null) {
+      setValue('valor_cobrado', String(convenioValor))
+    } else if (!isConvenio && tipo === 'paciente') {
+      setValue('valor_cobrado', '')
+    }
+  }, [pacienteId, isConvenio, convenioValor, tipo, setValue])
 
   async function onSubmit(data: FormData) {
     setServerError(null)
@@ -135,10 +149,23 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
             {errors.data_hora && <span className="text-xs text-[#E07070]">{errors.data_hora.message}</span>}
           </div>
 
-          {tipo === 'avulso' && (
+          {(tipo === 'avulso' || isConvenio) && (
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-[#1C1C1C]">Valor (R$)</label>
-              <input {...register('valor_cobrado')} type="number" step="0.01" min="0" placeholder="0,00" className={inputClass} />
+              <label className="text-sm font-medium text-[#1C1C1C]">
+                Valor (R$){isConvenio && convenioValor != null && (
+                  <span className="text-xs text-muted font-normal ml-1">
+                    — valor do convênio: R$ {convenioValor.toFixed(2)}
+                  </span>
+                )}
+              </label>
+              <input
+                {...register('valor_cobrado')}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder={convenioValor != null ? String(convenioValor) : '0,00'}
+                className={inputClass}
+              />
             </div>
           )}
 
