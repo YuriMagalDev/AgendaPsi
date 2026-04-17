@@ -17,6 +17,8 @@ export interface Paciente {
   email: string | null
   data_nascimento: string | null
   ativo: boolean
+  tipo: 'particular' | 'convenio'
+  convenio_id: string | null
   criado_em: string
 }
 
@@ -130,4 +132,24 @@ export interface SlotSemanalInput {
   horario: string
   modalidade_id: string
   is_pacote: boolean
+}
+
+export interface Convenio {
+  id: string
+  nome: string
+  valor_sessao: number | null
+  ativo: boolean
+  criado_em: string
+}
+
+export interface Despesa {
+  id: string
+  mes: string          // 'YYYY-MM-DD' — first day of the month
+  descricao: string
+  valor: number
+  criado_em: string
+}
+
+export type PacienteComConvenio = Paciente & {
+  convenios: { nome: string; valor_sessao: number | null } | null
 }
