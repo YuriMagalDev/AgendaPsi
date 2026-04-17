@@ -37,6 +37,8 @@ export interface Contrato {
   criado_em: string
 }
 
+export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_debito' | 'cartao_credito'
+
 export interface Sessao {
   id: string
   paciente_id: string | null
@@ -47,6 +49,7 @@ export interface Sessao {
   status: SessaoStatus
   valor_cobrado: number | null
   pago: boolean
+  forma_pagamento: string | null
   data_pagamento: string | null
   remarcada_para: string | null
   sessao_origem_id: string | null
@@ -76,6 +79,16 @@ export interface ConfirmacaoWhatsapp {
   mensagem_enviada_em: string | null
   resposta: string | null
   confirmado: boolean | null
+  lida: boolean
+}
+
+export type NotificacaoConfirmacao = ConfirmacaoWhatsapp & {
+  sessoes: {
+    data_hora: string
+    paciente_id: string | null
+    avulso_nome: string | null
+    pacientes: { nome: string } | null
+  } | null
 }
 
 export interface ConfigPsicologo {
@@ -102,17 +115,19 @@ export type SessaoView = Sessao & {
 export interface SlotSemanal {
   id: string
   paciente_id: string
+  nome: string | null
   dia_semana: number       // 0=Dom … 6=Sab
   horario: string          // "HH:MM"
   modalidade_id: string
-  valor_cobrado: number | null
+  is_pacote: boolean
   ativo: boolean
   criado_em: string
 }
 
 export interface SlotSemanalInput {
+  nome: string
   dia_semana: number
   horario: string
   modalidade_id: string
-  valor_cobrado: number | null
+  is_pacote: boolean
 }
