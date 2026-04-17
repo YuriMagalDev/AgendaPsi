@@ -1,17 +1,20 @@
+// src/pages/OnboardingPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { StepDados, type StepDadosData } from './onboarding/StepDados'
 import { StepModalidades } from './onboarding/StepModalidades'
+import { StepConvenios, type ConvenioInput } from './onboarding/StepConvenios'
 import { StepWhatsapp } from './onboarding/StepWhatsapp'
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2 | 3 | 4
 
 export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [dadosStep1, setDadosStep1] = useState<StepDadosData | null>(null)
   const [modalidades, setModalidades] = useState<string[]>([])
+  const [convenios, setConvenios] = useState<ConvenioInput[]>([])
   const [erroFinal, setErroFinal] = useState<string | null>(null)
 
   async function finalize(whatsappOpcao: 'agora' | 'depois' | 'nao') {
@@ -31,9 +34,15 @@ export function OnboardingPage() {
       return
     }
 
-    const extras = modalidades.filter((m) => !['Presencial', 'Online'].includes(m))
+    const extras = modalidades.filter(m => !['Presencial', 'Online'].includes(m))
     if (extras.length > 0) {
-      await supabase.from('modalidades').insert(extras.map((nome) => ({ nome })))
+      await supabase.from('modalidades').insert(extras.map(nome => ({ nome })))
+    }
+
+    if (convenios.length > 0) {
+      await supabase.from('convenios').insert(
+        convenios.map(c => ({ nome: c.nome, valor_sessao: c.valor_sessao, ativo: true }))
+      )
     }
 
     navigate(whatsappOpcao === 'agora' ? '/configuracoes?setup=whatsapp' : '/agenda')
@@ -48,15 +57,11 @@ export function OnboardingPage() {
         </div>
 
         <div className="flex items-center gap-2 mb-6 justify-center">
-          {([1, 2, 3] as Step[]).map((s) => (
+          {([1, 2, 3, 4] as Step[]).map(s => (
             <div
               key={s}
               className={`h-1.5 rounded-full transition-all ${
-                s === step
-                  ? 'w-8 bg-primary'
-                  : s < step
-                    ? 'w-4 bg-primary/40'
-                    : 'w-4 bg-border'
+                s === step ? 'w-8 bg-primary' : s < step ? 'w-4 bg-primary/40' : 'w-4 bg-border'
               }`}
             />
           ))}
@@ -68,28 +73,26 @@ export function OnboardingPage() {
 
         <div className="bg-surface rounded-card p-6 shadow-sm border border-border">
           {step === 1 && (
-            <StepDados
-              onNext={(data) => {
-                setDadosStep1(data)
-                setStep(2)
-              }}
-            />
+            <StepDados onNext={data => { setDadosStep1(data); setStep(2) }} />
           )}
           {step === 2 && (
             <StepModalidades
-              onNext={(m) => {
-                setModalidades(m)
-                setStep(3)
-              }}
+              onNext={m => { setModalidades(m); setStep(3) }}
               onBack={() => setStep(1)}
             />
           )}
           {step === 3 && (
+            <StepConvenios
+              onNext={c => { setConvenios(c); setStep(4) }}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
             <StepWhatsapp
               onConfigurar={() => finalize('agora')}
               onDepois={() => finalize('depois')}
               onNaoUsar={() => finalize('nao')}
-              onBack={() => setStep(2)}
+              onBack={() => setStep(3)}
             />
           )}
         </div>

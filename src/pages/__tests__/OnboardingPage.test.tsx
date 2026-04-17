@@ -62,10 +62,17 @@ describe('OnboardingPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /próximo/i }))
 
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /convênios/i })).toBeInTheDocument()
+    })
+
+    // Fill step 3 - skip convênios
+    fireEvent.click(screen.getByRole('button', { name: /não atendo por convênio/i }))
+
+    await waitFor(() => {
       expect(screen.getByRole('heading', { name: /whatsapp/i })).toBeInTheDocument()
     })
 
-    // Fill step 3 - choose "não usar automação"
+    // Fill step 4 - choose "não usar automação"
     const naoUsarButton = screen.getByRole('button', { name: /não usar automação/i })
     fireEvent.click(naoUsarButton)
 
