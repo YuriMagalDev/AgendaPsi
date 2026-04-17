@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { NotificacaoConfirmacao } from '@/lib/types'
 
@@ -20,11 +20,11 @@ export function useNotificacoes() {
     setLoading(false)
   }
 
-  async function marcarLidas(ids: string[]) {
+  const marcarLidas = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return
     await supabase.from('confirmacoes_whatsapp').update({ lida: true }).in('id', ids)
     setNotificacoes(prev => prev.filter(n => !ids.includes(n.id)))
-  }
+  }, [])
 
   useEffect(() => {
     fetchNotificacoes()
