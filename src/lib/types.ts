@@ -98,3 +98,21 @@ export type SessaoView = Sessao & {
   modalidades: { nome: string } | null
   pacientes: { nome: string } | null
 }
+
+export interface SlotSemanal {
+  id: string
+  paciente_id: string
+  dia_semana: number       // 0=Dom … 6=Sab
+  horario: string          // "HH:MM"
+  modalidade_id: string
+  valor_cobrado: number | null
+  ativo: boolean
+  criado_em: string
+}
+
+export interface SlotSemanalInput {
+  dia_semana: number
+  horario: string
+  modalidade_id: string
+  valor_cobrado: number | null
+}
