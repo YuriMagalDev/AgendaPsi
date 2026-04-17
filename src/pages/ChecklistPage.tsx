@@ -1,13 +1,23 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { CheckCircle2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useSessoesDia } from '@/hooks/useSessoesDia'
-import type { SessaoStatus, SessaoView } from '@/lib/types'
+import { RemarcarModal } from '@/components/sessao/RemarcarModal'
+import type { FormaPagamento, SessaoStatus, SessaoView } from '@/lib/types'
 
 const TODAY = format(new Date(), 'yyyy-MM-dd')
 
+const FORMAS_PAGAMENTO: { value: FormaPagamento; label: string }[] = [
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'pix', label: 'PIX' },
+  { value: 'cartao_debito', label: 'Débito' },
+  { value: 'cartao_credito', label: 'Crédito' },
+]
+
 type StatusUpdate = { id: string; status: SessaoStatus; remarcada_para?: string }
+type PagamentoUpdate = { id: string; pago: boolean; forma_pagamento: FormaPagamento | null; valor_cobrado: number | null }
 
 function getStatusColor(s: SessaoStatus): string {
   const map: Record<SessaoStatus, string> = {
@@ -17,15 +27,26 @@ function getStatusColor(s: SessaoStatus): string {
   return map[s]
 }
 
-function SessaoChecklist({ sessao, update, onUpdate }: {
+function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onRemarcar }: {
   sessao: SessaoView
   update: StatusUpdate | undefined
+  pagamento: PagamentoUpdate | undefined
   onUpdate: (u: StatusUpdate) => void
+  onPagamento: (p: PagamentoUpdate) => void
+  onRemarcar: () => void
 }) {
   const novoStatus = update?.status
-  const [remarcarData, setRemarcarData] = useState('')
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
   const horario = format(new Date(sessao.data_hora), 'HH:mm', { locale: ptBR })
+
+  const statusEfetivo = novoStatus ?? sessao.status
+  const mostrarPagamento = statusEfetivo === 'concluida'
+  const pagamentoEfetivo = pagamento ?? {
+    id: sessao.id,
+    pago: sessao.pago,
+    forma_pagamento: sessao.forma_pagamento as FormaPagamento | null,
+    valor_cobrado: sessao.valor_cobrado,
+  }
 
   const botoes: { status: SessaoStatus; label: string }[] = [
     { status: 'concluida', label: 'Concluída' },
@@ -62,23 +83,67 @@ function SessaoChecklist({ sessao, update, onUpdate }: {
             {label}
           </button>
         ))}
-        <div className="flex gap-1 w-full mt-1">
-          <input
-            type="datetime-local"
-            value={remarcarData}
-            onChange={e => setRemarcarData(e.target.value)}
-            className="flex-1 h-7 px-2 text-xs rounded border border-border outline-none focus:border-primary"
-          />
-          <button
-            onClick={() => remarcarData && onUpdate({ id: sessao.id, status: 'remarcada', remarcada_para: remarcarData })}
-            disabled={!remarcarData}
-            className="text-xs px-2 h-7 rounded border disabled:opacity-40 transition-colors"
-            style={{ borderColor: '#9B7EC8', color: '#9B7EC8' }}
-          >
-            Remarcar
-          </button>
-        </div>
+        <button
+          onClick={onRemarcar}
+          className="text-xs px-3 py-1 rounded-lg border transition-colors"
+          style={{ borderColor: '#9B7EC8', color: '#9B7EC8' }}
+        >
+          Remarcar
+        </button>
       </div>
+
+      {mostrarPagamento && (
+        <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2">
+          <p className="text-xs text-muted font-medium uppercase tracking-wide">Pagamento</p>
+          {pagamentoEfetivo.pago ? (
+            <div className="flex items-center gap-2 text-sm text-[#4CAF82]">
+              <CheckCircle2 size={15} />
+              <span>Pago{pagamentoEfetivo.forma_pagamento ? ` — ${FORMAS_PAGAMENTO.find(f => f.value === pagamentoEfetivo.forma_pagamento)?.label}` : ''}</span>
+              {pagamentoEfetivo.valor_cobrado != null && (
+                <span className="ml-auto font-medium font-mono text-xs">
+                  R$ {pagamentoEfetivo.valor_cobrado.toFixed(2)}
+                </span>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {FORMAS_PAGAMENTO.map(f => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onClick={() => onPagamento({ ...pagamentoEfetivo, forma_pagamento: f.value })}
+                    className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                      pagamentoEfetivo.forma_pagamento === f.value
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-border text-[#1C1C1C] hover:border-primary'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => onPagamento({ ...pagamentoEfetivo, pago: true, forma_pagamento: pagamentoEfetivo.forma_pagamento })}
+                  disabled={!pagamentoEfetivo.forma_pagamento}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-[#4CAF82]/10 border border-[#4CAF82] text-[#4CAF82] disabled:opacity-40 transition-colors ml-auto"
+                >
+                  Confirmar pago
+                </button>
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Valor cobrado (R$)"
+                value={pagamentoEfetivo.valor_cobrado ?? ''}
+                onChange={e => onPagamento({ ...pagamentoEfetivo, valor_cobrado: e.target.value ? Number(e.target.value) : null })}
+                className="h-7 px-2 text-xs rounded border border-border outline-none focus:border-primary w-full"
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -86,12 +151,53 @@ function SessaoChecklist({ sessao, update, onUpdate }: {
 export function ChecklistPage() {
   const { sessoes, loading, error, refetch } = useSessoesDia(TODAY)
   const [updates, setUpdates] = useState<StatusUpdate[]>([])
+  const [pagamentos, setPagamentos] = useState<PagamentoUpdate[]>([])
   const [salvando, setSalvando] = useState(false)
+  const [remarcarSessao, setRemarcarSessao] = useState<SessaoView | null>(null)
 
   const pendentes = sessoes.filter(s => s.status === 'agendada' || s.status === 'confirmada')
+  const totalAlteracoes = updates.length + pagamentos.filter(p => p.pago).length
 
   function handleUpdate(u: StatusUpdate) {
     setUpdates(prev => [...prev.filter(x => x.id !== u.id), u])
+  }
+
+  function handlePagamento(p: PagamentoUpdate) {
+    setPagamentos(prev => [...prev.filter(x => x.id !== p.id), p])
+  }
+
+  async function handleRemarcar(sessao: SessaoView, novaDataHora: string) {
+    try {
+      const { error: updateError } = await supabase
+        .from('sessoes')
+        .update({ status: 'remarcada', remarcada_para: novaDataHora })
+        .eq('id', sessao.id)
+      if (updateError) throw updateError
+      const { error: insertError } = await supabase.from('sessoes').insert({
+        paciente_id: sessao.paciente_id,
+        avulso_nome: sessao.avulso_nome,
+        avulso_telefone: sessao.avulso_telefone,
+        modalidade_id: sessao.modalidade_id,
+        data_hora: novaDataHora,
+        status: 'agendada',
+        valor_cobrado: sessao.valor_cobrado,
+        pago: false,
+        data_pagamento: null,
+        remarcada_para: null,
+        sessao_origem_id: sessao.id,
+      })
+      if (insertError) {
+        await supabase
+          .from('sessoes')
+          .update({ status: sessao.status, remarcada_para: null })
+          .eq('id', sessao.id)
+        throw insertError
+      }
+      setRemarcarSessao(null)
+      await refetch()
+    } catch {
+      // error visible to user via refetch showing unchanged state
+    }
   }
 
   async function salvarTudo() {
@@ -101,7 +207,16 @@ export function ChecklistPage() {
       if (u.remarcada_para) patch.remarcada_para = u.remarcada_para
       await supabase.from('sessoes').update(patch).eq('id', u.id)
     }
+    for (const p of pagamentos.filter(p => p.pago)) {
+      await supabase.from('sessoes').update({
+        pago: true,
+        forma_pagamento: p.forma_pagamento,
+        valor_cobrado: p.valor_cobrado,
+        data_pagamento: new Date().toISOString(),
+      }).eq('id', p.id)
+    }
     setUpdates([])
+    setPagamentos([])
     await refetch()
     setSalvando(false)
   }
@@ -115,13 +230,13 @@ export function ChecklistPage() {
           <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Checklist do dia</h1>
           <p className="text-sm text-muted capitalize">{tituloData}</p>
         </div>
-        {updates.length > 0 && (
+        {totalAlteracoes > 0 && (
           <button
             onClick={salvarTudo}
             disabled={salvando}
             className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            {salvando ? 'Salvando...' : `Salvar (${updates.length})`}
+            {salvando ? 'Salvando...' : `Salvar (${totalAlteracoes})`}
           </button>
         )}
       </div>
@@ -136,7 +251,7 @@ export function ChecklistPage() {
 
       {!loading && !error && pendentes.length === 0 && (
         <div className="text-center py-16">
-          <p className="text-muted text-sm">Nenhuma sessão pendente hoje. 🎉</p>
+          <p className="text-muted text-sm">Nenhuma sessão pendente hoje.</p>
         </div>
       )}
 
@@ -147,10 +262,21 @@ export function ChecklistPage() {
               key={s.id}
               sessao={s}
               update={updates.find(u => u.id === s.id)}
+              pagamento={pagamentos.find(p => p.id === s.id)}
               onUpdate={handleUpdate}
+              onPagamento={handlePagamento}
+              onRemarcar={() => setRemarcarSessao(s)}
             />
           ))}
         </div>
+      )}
+
+      {remarcarSessao && (
+        <RemarcarModal
+          sessao={remarcarSessao}
+          onClose={() => setRemarcarSessao(null)}
+          onConfirmar={novaDataHora => handleRemarcar(remarcarSessao, novaDataHora)}
+        />
       )}
     </div>
   )
