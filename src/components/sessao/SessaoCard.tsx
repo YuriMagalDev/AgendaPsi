@@ -1,15 +1,7 @@
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import type { SessaoStatus, SessaoView } from '@/lib/types'
-
-const statusConfig: Record<SessaoStatus, { label: string; cor: string }> = {
-  agendada:   { label: 'Agendada',    cor: '#9CA3AF' },
-  confirmada: { label: 'Confirmada',  cor: '#2D6A6A' },
-  concluida:  { label: 'Concluída',   cor: '#4CAF82' },
-  faltou:     { label: 'Faltou',      cor: '#C17F59' },
-  cancelada:  { label: 'Cancelada',   cor: '#E07070' },
-  remarcada:  { label: 'Remarcada',   cor: '#9B7EC8' },
-}
+import type { SessaoView } from '@/lib/types'
+import { STATUS_CONFIG } from '@/lib/statusConfig'
 
 interface Props {
   sessao: SessaoView
@@ -17,7 +9,7 @@ interface Props {
 }
 
 export function SessaoCard({ sessao, onClick }: Props) {
-  const cfg = statusConfig[sessao.status]
+  const cfg = STATUS_CONFIG[sessao.status]
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
   const horario = format(new Date(sessao.data_hora), 'HH:mm', { locale: ptBR })
 
