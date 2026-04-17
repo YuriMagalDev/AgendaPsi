@@ -40,6 +40,7 @@ function SessaoPanel({
 }) {
   const [remarcarAberto, setRemarcarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento | null>(
     (sessao.forma_pagamento as FormaPagamento | null) ?? null
   )
@@ -60,25 +61,41 @@ function SessaoPanel({
 
   async function remarcar(novaDataHora: string) {
     setSalvando(true)
-    await supabase
-      .from('sessoes')
-      .update({ status: 'remarcada', remarcada_para: novaDataHora })
-      .eq('id', sessao.id)
-    await supabase.from('sessoes').insert({
-      paciente_id: sessao.paciente_id,
-      avulso_nome: sessao.avulso_nome,
-      avulso_telefone: sessao.avulso_telefone,
-      modalidade_id: sessao.modalidade_id,
-      data_hora: novaDataHora,
-      status: 'agendada',
-      valor_cobrado: sessao.valor_cobrado,
-      pago: false,
-      data_pagamento: null,
-      remarcada_para: null,
-      sessao_origem_id: sessao.id,
-    })
-    onUpdate()
-    onClose()
+    setErro(null)
+    try {
+      const { error: updateError } = await supabase
+        .from('sessoes')
+        .update({ status: 'remarcada', remarcada_para: novaDataHora })
+        .eq('id', sessao.id)
+      if (updateError) throw updateError
+
+      const { error: insertError } = await supabase.from('sessoes').insert({
+        paciente_id: sessao.paciente_id,
+        avulso_nome: sessao.avulso_nome,
+        avulso_telefone: sessao.avulso_telefone,
+        modalidade_id: sessao.modalidade_id,
+        data_hora: novaDataHora,
+        status: 'agendada',
+        valor_cobrado: sessao.valor_cobrado,
+        pago: false,
+        data_pagamento: null,
+        remarcada_para: null,
+        sessao_origem_id: sessao.id,
+      })
+      if (insertError) {
+        await supabase
+          .from('sessoes')
+          .update({ status: sessao.status, remarcada_para: null })
+          .eq('id', sessao.id)
+        throw insertError
+      }
+
+      onUpdate()
+      onClose()
+    } catch {
+      setErro('Erro ao remarcar. Tente novamente.')
+      setSalvando(false)
+    }
   }
 
   async function confirmarPagamento() {
@@ -196,6 +213,7 @@ function SessaoPanel({
               )}
             </div>
           )}
+          {erro && <p className="text-xs text-[#E07070] text-center mt-2">{erro}</p>}
         </div>
       </div>
 
