@@ -1,10 +1,10 @@
-# Módulo Pacientes — Implementation Plan
+# Patients Module — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implementar o módulo completo de pacientes: lista com busca, cadastro com contrato de cobrança e perfil com histórico de sessões e ação de arquivar.
+**Goal:** Implement the complete patients module: list with search, registration with billing contract, and profile with session history and archive action.
 
-**Architecture:** Três hooks isolados (`usePacientes`, `usePacienteDetalhe`) chamam Supabase diretamente via `supabase-js`. As três páginas placeholder existentes são substituídas por implementações reais. Nenhum estado global — cada página busca seus próprios dados.
+**Architecture:** Three isolated hooks (`usePacientes`, `usePacienteDetalhe`) call Supabase directly via `supabase-js`. The three existing placeholder pages are replaced with real implementations. No global state — each page fetches its own data.
 
 **Tech Stack:** React + TypeScript + React Hook Form + Zod + Supabase JS + date-fns + Tailwind CSS + lucide-react
 
@@ -12,32 +12,32 @@
 
 ## File Structure
 
-**Criar:**
-- `src/hooks/usePacientes.ts` — lista de pacientes ativos, createPaciente, arquivarPaciente
-- `src/hooks/usePacienteDetalhe.ts` — paciente + sessões com modalidade + contrato ativo + stats
+**Create:**
+- `src/hooks/usePacientes.ts` — list of active patients, createPaciente, arquivarPaciente
+- `src/hooks/usePacienteDetalhe.ts` — patient + sessions with modality + active contract + stats
 - `src/hooks/__tests__/usePacientes.test.ts`
 - `src/hooks/__tests__/usePacienteDetalhe.test.ts`
 
-**Modificar:**
-- `src/lib/types.ts` — adicionar `SessaoComModalidade`
-- `src/pages/PacientesPage.tsx` — lista com busca (substituir stub)
-- `src/pages/NovoPacientePage.tsx` — formulário de cadastro (substituir stub)
-- `src/pages/PacienteDetalhePage.tsx` — perfil do paciente (substituir stub)
+**Modify:**
+- `src/lib/types.ts` — add `SessaoComModalidade`
+- `src/pages/PacientesPage.tsx` — list with search (replace stub)
+- `src/pages/NovoPacientePage.tsx` — registration form (replace stub)
+- `src/pages/PacienteDetalhePage.tsx` — patient profile (replace stub)
 
 ---
 
-### Task 1: Tipo `SessaoComModalidade` + hook `usePacientes`
+### Task 1: Type `SessaoComModalidade` + hook `usePacientes`
 
-Hook que busca todos os pacientes ativos, cria um novo paciente (com contrato opcional) e arquiva. Usado em PacientesPage e NovoPacientePage.
+Hook that fetches all active patients, creates a new patient (with optional contract) and archives. Used in PacientesPage and NovoPacientePage.
 
 **Files:**
 - Modify: `src/lib/types.ts`
 - Create: `src/hooks/usePacientes.ts`
 - Create: `src/hooks/__tests__/usePacientes.test.ts`
 
-- [ ] **Step 1: Adicionar `SessaoComModalidade` em `src/lib/types.ts`**
+- [ ] **Step 1: Add `SessaoComModalidade` in `src/lib/types.ts`**
 
-Abrir `src/lib/types.ts` e adicionar ao final (após a linha 91, `}`):
+Open `src/lib/types.ts` and add at the end (after line 91, `}`):
 
 ```typescript
 export type SessaoComModalidade = Sessao & {
@@ -45,9 +45,9 @@ export type SessaoComModalidade = Sessao & {
 }
 ```
 
-- [ ] **Step 2: Escrever os testes falhando**
+- [ ] **Step 2: Write the failing tests**
 
-Criar `src/hooks/__tests__/usePacientes.test.ts`:
+Create `src/hooks/__tests__/usePacientes.test.ts`:
 
 ```typescript
 import { renderHook, waitFor, act } from '@testing-library/react'
@@ -60,7 +60,7 @@ vi.mock('@/lib/supabase', () => ({
 
 import { supabase } from '@/lib/supabase'
 
-/** Helper: cria um mock de fluent-builder do Supabase */
+/** Helper: creates a mock of Supabase fluent-builder */
 function buildChain(overrides: Record<string, any> = {}) {
   const base: any = {
     select: vi.fn().mockReturnThis(),
@@ -77,7 +77,7 @@ function buildChain(overrides: Record<string, any> = {}) {
 describe('usePacientes', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('busca pacientes ativos ordenados por nome', async () => {
+  it('fetches active patients ordered by name', async () => {
     const mockData = [
       { id: '1', nome: 'Ana Lima', telefone: null, email: null, data_nascimento: null, ativo: true, criado_em: '2024-01-01T00:00:00Z' },
     ]
@@ -92,7 +92,7 @@ describe('usePacientes', () => {
     expect(supabase.from).toHaveBeenCalledWith('pacientes')
   })
 
-  it('define error quando fetch falha', async () => {
+  it('sets error when fetch fails', async () => {
     vi.mocked(supabase.from).mockReturnValue(
       buildChain({ order: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }) })
     )
@@ -104,14 +104,14 @@ describe('usePacientes', () => {
     expect(result.current.pacientes).toEqual([])
   })
 
-  it('createPaciente retorna o id do novo paciente', async () => {
+  it('createPaciente returns the new patient id', async () => {
     const newId = 'uuid-novo'
     let callCount = 0
 
     vi.mocked(supabase.from).mockImplementation(() => {
       callCount++
       if (callCount === 2) {
-        // Segunda chamada = insert do paciente
+        // Second call = patient insert
         return {
           insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
@@ -120,7 +120,7 @@ describe('usePacientes', () => {
           }),
         } as any
       }
-      // Primeira (fetch inicial) e terceira+ (refresh pós-criação)
+      // First (initial fetch) and third+ (post-creation refresh)
       return buildChain({ order: vi.fn().mockResolvedValue({ data: [], error: null }) }) as any
     })
 
@@ -135,7 +135,7 @@ describe('usePacientes', () => {
     expect(returnedId).toBe(newId)
   })
 
-  it('createPaciente lança exceção quando Supabase retorna erro', async () => {
+  it('createPaciente throws an exception when Supabase returns an error', async () => {
     let callCount = 0
     vi.mocked(supabase.from).mockImplementation(() => {
       callCount++
@@ -159,7 +159,7 @@ describe('usePacientes', () => {
     ).rejects.toBeDefined()
   })
 
-  it('arquivarPaciente chama update no Supabase', async () => {
+  it('arquivarPaciente calls update in Supabase', async () => {
     const eqSpy = vi.fn().mockResolvedValue({ error: null })
     const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy })
 
@@ -180,15 +180,15 @@ describe('usePacientes', () => {
 })
 ```
 
-- [ ] **Step 3: Rodar os testes para confirmar que falham**
+- [ ] **Step 3: Run the tests to confirm they fail**
 
 ```
 npx vitest run src/hooks/__tests__/usePacientes.test.ts
 ```
 
-Expected: FAIL com "Cannot find module '../usePacientes'"
+Expected: FAIL with "Cannot find module '../usePacientes'"
 
-- [ ] **Step 4: Implementar `src/hooks/usePacientes.ts`**
+- [ ] **Step 4: Implement `src/hooks/usePacientes.ts`**
 
 ```typescript
 import { useState, useEffect } from 'react'
@@ -280,13 +280,13 @@ export function usePacientes() {
 }
 ```
 
-- [ ] **Step 5: Rodar os testes e confirmar que passam**
+- [ ] **Step 5: Run the tests and confirm they pass**
 
 ```
 npx vitest run src/hooks/__tests__/usePacientes.test.ts
 ```
 
-Expected: PASS — 5 testes passando
+Expected: PASS — 5 tests passing
 
 - [ ] **Step 6: Commit**
 
@@ -299,15 +299,15 @@ git commit -m "feat: add SessaoComModalidade type and usePacientes hook"
 
 ### Task 2: Hook `usePacienteDetalhe`
 
-Hook que busca em paralelo: o paciente pelo ID, suas sessões com nome da modalidade e o contrato ativo. Calcula stats de sessões. Usado em PacienteDetalhePage.
+Hook that fetches in parallel: the patient by ID, their sessions with modality name, and the active contract. Calculates session stats. Used in PacienteDetalhePage.
 
 **Files:**
 - Create: `src/hooks/usePacienteDetalhe.ts`
 - Create: `src/hooks/__tests__/usePacienteDetalhe.test.ts`
 
-- [ ] **Step 1: Escrever os testes falhando**
+- [ ] **Step 1: Write the failing tests**
 
-Criar `src/hooks/__tests__/usePacienteDetalhe.test.ts`:
+Create `src/hooks/__tests__/usePacienteDetalhe.test.ts`:
 
 ```typescript
 import { renderHook, waitFor, act } from '@testing-library/react'
@@ -362,7 +362,7 @@ function buildChain(overrides: Record<string, any> = {}) {
 describe('usePacienteDetalhe', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('busca paciente, sessões e contrato em paralelo', async () => {
+  it('fetches patient, sessions and contract in parallel', async () => {
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'pacientes') {
         return buildChain({ single: vi.fn().mockResolvedValue({ data: mockPaciente, error: null }) }) as any
@@ -384,7 +384,7 @@ describe('usePacienteDetalhe', () => {
     expect(result.current.contrato).toEqual(mockContrato)
   })
 
-  it('calcula stats corretamente a partir das sessões', async () => {
+  it('calculates stats correctly from sessions', async () => {
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'pacientes') return buildChain({ single: vi.fn().mockResolvedValue({ data: mockPaciente, error: null }) }) as any
       if (table === 'sessoes') return buildChain({ order: vi.fn().mockResolvedValue({ data: mockSessoes, error: null }) }) as any
@@ -397,10 +397,10 @@ describe('usePacienteDetalhe', () => {
     expect(result.current.stats.total).toBe(3)
     expect(result.current.stats.concluidas).toBe(2)
     expect(result.current.stats.faltas).toBe(1)
-    expect(result.current.stats.totalPago).toBe(150) // só s-1 é pago
+    expect(result.current.stats.totalPago).toBe(150) // only s-1 is paid
   })
 
-  it('arquivar chama update com ativo=false', async () => {
+  it('archive calls update with ativo=false', async () => {
     const eqSpy = vi.fn().mockResolvedValue({ error: null })
     const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy })
 
@@ -426,15 +426,15 @@ describe('usePacienteDetalhe', () => {
 })
 ```
 
-- [ ] **Step 2: Rodar os testes para confirmar que falham**
+- [ ] **Step 2: Run the tests to confirm they fail**
 
 ```
 npx vitest run src/hooks/__tests__/usePacienteDetalhe.test.ts
 ```
 
-Expected: FAIL com "Cannot find module '../usePacienteDetalhe'"
+Expected: FAIL with "Cannot find module '../usePacienteDetalhe'"
 
-- [ ] **Step 3: Implementar `src/hooks/usePacienteDetalhe.ts`**
+- [ ] **Step 3: Implement `src/hooks/usePacienteDetalhe.ts`**
 
 ```typescript
 import { useState, useEffect } from 'react'
@@ -503,21 +503,21 @@ export function usePacienteDetalhe(id: string) {
 }
 ```
 
-- [ ] **Step 4: Rodar os testes e confirmar que passam**
+- [ ] **Step 4: Run the tests and confirm they pass**
 
 ```
 npx vitest run src/hooks/__tests__/usePacienteDetalhe.test.ts
 ```
 
-Expected: PASS — 3 testes passando
+Expected: PASS — 3 tests passing
 
-- [ ] **Step 5: Rodar todos os testes para confirmar que não quebrou nada**
+- [ ] **Step 5: Run all tests to confirm nothing broke**
 
 ```
 npx vitest run
 ```
 
-Expected: todos passando (ignorar o erro de tipo em types.test.ts — é pré-existente)
+Expected: all passing (ignore the type error in types.test.ts — it's pre-existing)
 
 - [ ] **Step 6: Commit**
 
@@ -528,16 +528,16 @@ git commit -m "feat: add usePacienteDetalhe hook with stats computation"
 
 ---
 
-### Task 3: `PacientesPage` — lista com busca
+### Task 3: `PacientesPage` — list with search
 
-Lista todos os pacientes ativos com campo de busca por nome. Link para cada perfil e botão "Novo Paciente".
+Lists all active patients with search field by name. Link to each profile and "Novo Paciente" (New Patient) button.
 
 **Files:**
 - Modify: `src/pages/PacientesPage.tsx`
 
-- [ ] **Step 1: Substituir o stub pela implementação**
+- [ ] **Step 1: Replace the stub with the implementation**
 
-Substituir todo o conteúdo de `src/pages/PacientesPage.tsx`:
+Replace the entire content of `src/pages/PacientesPage.tsx`:
 
 ```typescript
 import { useState } from 'react'
@@ -547,9 +547,9 @@ import { usePacientes } from '@/hooks/usePacientes'
 import type { Paciente } from '@/lib/types'
 
 const contratoLabel: Record<string, string> = {
-  por_sessao: 'Por sessão',
-  pacote: 'Pacote',
-  mensal: 'Mensal',
+  por_sessao: 'Per session',
+  pacote: 'Package',
+  mensal: 'Monthly',
 }
 
 function PacienteCard({ paciente }: { paciente: Paciente }) {
@@ -586,28 +586,28 @@ export function PacientesPage() {
     <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Pacientes</h1>
+        <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Patients</h1>
         <Link to="/pacientes/novo">
           <button className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors">
             <Plus size={16} />
-            Novo
+            New
           </button>
         </Link>
       </div>
 
-      {/* Busca */}
+      {/* Search */}
       <div className="relative mb-4">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
         <input
           type="text"
-          placeholder="Buscar paciente..."
+          placeholder="Search patient..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-surface text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder:text-muted"
         />
       </div>
 
-      {/* Estados */}
+      {/* States */}
       {loading && (
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -615,18 +615,18 @@ export function PacientesPage() {
       )}
 
       {error && (
-        <p className="text-center py-8 text-sm text-[#E07070]">Erro ao carregar pacientes.</p>
+        <p className="text-center py-8 text-sm text-[#E07070]">Error loading patients.</p>
       )}
 
       {!loading && !error && filtered.length === 0 && (
         <div className="text-center py-16">
           <UserRound size={40} className="text-border mx-auto mb-3" />
           <p className="text-muted text-sm">
-            {search ? 'Nenhum paciente encontrado.' : 'Nenhum paciente cadastrado ainda.'}
+            {search ? 'No patients found.' : 'No patients registered yet.'}
           </p>
           {!search && (
             <Link to="/pacientes/novo" className="inline-block mt-4 text-sm text-primary font-medium hover:underline">
-              Cadastrar primeiro paciente
+              Register first patient
             </Link>
           )}
         </div>
@@ -644,11 +644,11 @@ export function PacientesPage() {
 }
 ```
 
-- [ ] **Step 2: Verificar no browser**
+- [ ] **Step 2: Verify in the browser**
 
-Com o dev server rodando (`npm run dev`), navegar para `/pacientes`.
+With the dev server running (`npm run dev`), navigate to `/pacientes`.
 
-Expected: página com header "Pacientes", campo de busca e estado vazio (nenhum paciente cadastrado ainda) ou lista de pacientes se já houver dados no Supabase.
+Expected: page with "Patients" header, search field and empty state (no patients registered yet) or a list of patients if there is data in Supabase.
 
 - [ ] **Step 3: Commit**
 
@@ -659,16 +659,16 @@ git commit -m "feat: implement PacientesPage with search and patient list"
 
 ---
 
-### Task 4: `NovoPacientePage` — formulário de cadastro
+### Task 4: `NovoPacientePage` — registration form
 
-Formulário para criar paciente com nome, contato, data de nascimento e seção opcional de contrato de cobrança. Após salvar, navega para o perfil do paciente criado.
+Form to create a patient with name, contact, birth date, and an optional billing contract section. After saving, navigates to the created patient profile.
 
 **Files:**
 - Modify: `src/pages/NovoPacientePage.tsx`
 
-- [ ] **Step 1: Substituir o stub pela implementação**
+- [ ] **Step 1: Replace the stub with the implementation**
 
-Substituir todo o conteúdo de `src/pages/NovoPacientePage.tsx`:
+Replace the entire content of `src/pages/NovoPacientePage.tsx`:
 
 ```typescript
 import { useState } from 'react'
@@ -682,7 +682,7 @@ import type { ContratoTipo } from '@/lib/types'
 
 const schema = z
   .object({
-    nome: z.string().min(1, 'Nome é obrigatório'),
+    nome: z.string().min(1, 'Name is required'),
     telefone: z.string().optional(),
     email: z.string().optional(),
     data_nascimento: z.string().optional(),
@@ -694,24 +694,24 @@ const schema = z
   })
   .superRefine((data, ctx) => {
     if (data.email && data.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      ctx.addIssue({ code: 'custom', path: ['email'], message: 'E-mail inválido' })
+      ctx.addIssue({ code: 'custom', path: ['email'], message: 'Invalid E-mail' })
     }
     if (data.tem_contrato) {
       if (!data.contrato_tipo) {
-        ctx.addIssue({ code: 'custom', path: ['contrato_tipo'], message: 'Selecione o tipo de cobrança' })
+        ctx.addIssue({ code: 'custom', path: ['contrato_tipo'], message: 'Select billing type' })
       }
       if (!data.contrato_valor || isNaN(Number(data.contrato_valor)) || Number(data.contrato_valor) <= 0) {
-        ctx.addIssue({ code: 'custom', path: ['contrato_valor'], message: 'Informe um valor válido' })
+        ctx.addIssue({ code: 'custom', path: ['contrato_valor'], message: 'Enter a valid amount' })
       }
       if (data.contrato_tipo === 'pacote') {
         if (!data.contrato_qtd_sessoes || isNaN(Number(data.contrato_qtd_sessoes)) || Number(data.contrato_qtd_sessoes) < 1) {
-          ctx.addIssue({ code: 'custom', path: ['contrato_qtd_sessoes'], message: 'Informe a quantidade de sessões' })
+          ctx.addIssue({ code: 'custom', path: ['contrato_qtd_sessoes'], message: 'Enter the amount of sessions' })
         }
       }
       if (data.contrato_tipo === 'mensal') {
         const dia = Number(data.contrato_dia_vencimento)
         if (!data.contrato_dia_vencimento || isNaN(dia) || dia < 1 || dia > 31) {
-          ctx.addIssue({ code: 'custom', path: ['contrato_dia_vencimento'], message: 'Informe um dia entre 1 e 31' })
+          ctx.addIssue({ code: 'custom', path: ['contrato_dia_vencimento'], message: 'Enter a day between 1 and 31' })
         }
       }
     }
@@ -772,7 +772,7 @@ export function NovoPacientePage() {
       })
       navigate(`/pacientes/${id}`)
     } catch {
-      setServerError('Erro ao salvar. Tente novamente.')
+      setServerError('Error saving. Try again.')
     }
   }
 
@@ -783,17 +783,17 @@ export function NovoPacientePage() {
         <Link to="/pacientes" className="text-muted hover:text-[#1C1C1C] transition-colors">
           <ArrowLeft size={20} />
         </Link>
-        <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Novo Paciente</h1>
+        <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">New Patient</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-        {/* Dados pessoais */}
+        {/* Personal data */}
         <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
-          <p className="text-xs font-semibold text-muted uppercase tracking-wide">Dados pessoais</p>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wide">Personal data</p>
 
           <div className="flex flex-col gap-1">
-            <FieldLabel required>Nome</FieldLabel>
-            <input {...register('nome')} placeholder="Nome completo" className={inputClass} />
+            <FieldLabel required>Name</FieldLabel>
+            <input {...register('nome')} placeholder="Full name" className={inputClass} />
             <FieldError message={errors.nome?.message} />
           </div>
 
@@ -804,54 +804,54 @@ export function NovoPacientePage() {
 
           <div className="flex flex-col gap-1">
             <FieldLabel>E-mail</FieldLabel>
-            <input {...register('email')} type="email" placeholder="email@exemplo.com" className={inputClass} />
+            <input {...register('email')} type="email" placeholder="email@example.com" className={inputClass} />
             <FieldError message={errors.email?.message} />
           </div>
 
           <div className="flex flex-col gap-1">
-            <FieldLabel>Data de nascimento</FieldLabel>
+            <FieldLabel>Birth date</FieldLabel>
             <input {...register('data_nascimento')} type="date" className={inputClass} />
           </div>
         </div>
 
-        {/* Contrato */}
+        {/* Contract */}
         <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Cobrança</p>
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Billing</p>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 {...register('tem_contrato')}
                 className="w-4 h-4 accent-primary"
               />
-              <span className="text-sm text-[#1C1C1C]">Definir agora</span>
+              <span className="text-sm text-[#1C1C1C]">Define now</span>
             </label>
           </div>
 
           {temContrato && (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <FieldLabel>Tipo de cobrança</FieldLabel>
+                <FieldLabel>Billing type</FieldLabel>
                 <select
                   {...register('contrato_tipo')}
                   className={inputClass}
                 >
-                  <option value="">Selecione...</option>
-                  <option value="por_sessao">Por sessão</option>
-                  <option value="pacote">Pacote de sessões</option>
-                  <option value="mensal">Mensalidade</option>
+                  <option value="">Select...</option>
+                  <option value="por_sessao">Per session</option>
+                  <option value="pacote">Session package</option>
+                  <option value="mensal">Monthly</option>
                 </select>
                 <FieldError message={errors.contrato_tipo?.message} />
               </div>
 
               <div className="flex flex-col gap-1">
-                <FieldLabel>Valor (R$)</FieldLabel>
+                <FieldLabel>Amount (R$)</FieldLabel>
                 <input
                   {...register('contrato_valor')}
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0,00"
+                  placeholder="0.00"
                   className={inputClass}
                 />
                 <FieldError message={errors.contrato_valor?.message} />
@@ -859,7 +859,7 @@ export function NovoPacientePage() {
 
               {contratoTipo === 'pacote' && (
                 <div className="flex flex-col gap-1">
-                  <FieldLabel>Quantidade de sessões</FieldLabel>
+                  <FieldLabel>Amount of sessions</FieldLabel>
                   <input
                     {...register('contrato_qtd_sessoes')}
                     type="number"
@@ -873,7 +873,7 @@ export function NovoPacientePage() {
 
               {contratoTipo === 'mensal' && (
                 <div className="flex flex-col gap-1">
-                  <FieldLabel>Dia de vencimento</FieldLabel>
+                  <FieldLabel>Due day</FieldLabel>
                   <input
                     {...register('contrato_dia_vencimento')}
                     type="number"
@@ -889,7 +889,7 @@ export function NovoPacientePage() {
           )}
 
           {!temContrato && (
-            <p className="text-sm text-muted">Você pode definir a forma de cobrança depois no perfil do paciente.</p>
+            <p className="text-sm text-muted">You can define the billing method later in the patient's profile.</p>
           )}
         </div>
 
@@ -897,20 +897,20 @@ export function NovoPacientePage() {
           <p className="text-sm text-[#E07070] text-center">{serverError}</p>
         )}
 
-        {/* Ações */}
+        {/* Actions */}
         <div className="flex gap-3">
           <Link
             to="/pacientes"
             className="flex-1 h-10 flex items-center justify-center rounded-lg border border-border text-sm font-medium text-[#1C1C1C] hover:bg-bg transition-colors"
           >
-            Cancelar
+            Cancel
           </Link>
           <button
             type="submit"
             disabled={isSubmitting}
             className="flex-1 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            {isSubmitting ? 'Salvando...' : 'Salvar'}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </div>
       </form>
@@ -919,16 +919,16 @@ export function NovoPacientePage() {
 }
 ```
 
-- [ ] **Step 2: Verificar no browser**
+- [ ] **Step 2: Verify in the browser**
 
-Navegar para `/pacientes/novo`.
+Navigate to `/pacientes/novo`.
 
 Expected:
-- Formulário com seção "Dados pessoais" (Nome*, WhatsApp, E-mail, Data nascimento)
-- Seção "Cobrança" com checkbox "Definir agora"
-- Ao marcar o checkbox: aparecem campos de contrato (tipo, valor, campos condicionais)
-- Botões Cancelar e Salvar
-- Preencher nome + marcar pacote + informar valor e qtd → clicar Salvar → redireciona para `/pacientes/:id`
+- Form with "Personal data" section (Name*, WhatsApp, E-mail, Birth date)
+- "Billing" section with "Define now" checkbox
+- Checking the box: contract fields appear (type, amount, conditional fields)
+- Cancel and Save buttons
+- Fill name + check package + fill amount and qty → click Save → redirects to `/pacientes/:id`
 
 - [ ] **Step 3: Commit**
 
@@ -939,16 +939,16 @@ git commit -m "feat: implement NovoPacientePage with patient creation form"
 
 ---
 
-### Task 5: `PacienteDetalhePage` — perfil do paciente
+### Task 5: `PacienteDetalhePage` — patient profile
 
-Exibe dados do paciente, contrato ativo, stats de sessões e histórico cronológico. Botão de arquivar com confirmação.
+Displays patient data, active contract, session stats, and chronological history. Archive button with confirmation.
 
 **Files:**
 - Modify: `src/pages/PacienteDetalhePage.tsx`
 
-- [ ] **Step 1: Substituir o stub pela implementação**
+- [ ] **Step 1: Replace the stub with the implementation**
 
-Substituir todo o conteúdo de `src/pages/PacienteDetalhePage.tsx`:
+Replace the entire content of `src/pages/PacienteDetalhePage.tsx`:
 
 ```typescript
 import { useNavigate, useParams, Link } from 'react-router-dom'
@@ -959,19 +959,19 @@ import { usePacienteDetalhe } from '@/hooks/usePacienteDetalhe'
 import type { SessaoStatus, ContratoTipo } from '@/lib/types'
 
 const statusConfig: Record<SessaoStatus, { label: string; color: string }> = {
-  agendada:   { label: 'Agendada',   color: '#9CA3AF' },
-  confirmada: { label: 'Confirmada', color: '#2D6A6A' },
-  concluida:  { label: 'Concluída',  color: '#4CAF82' },
-  faltou:     { label: 'Faltou',     color: '#C17F59' },
-  cancelada:  { label: 'Cancelada',  color: '#E07070' },
-  remarcada:  { label: 'Remarcada',  color: '#9B7EC8' },
+  agendada:   { label: 'Scheduled',   color: '#9CA3AF' },
+  confirmada: { label: 'Confirmed', color: '#2D6A6A' },
+  concluida:  { label: 'Completed',  color: '#4CAF82' },
+  faltou:     { label: 'Missed',     color: '#C17F59' },
+  cancelada:  { label: 'Canceled',  color: '#E07070' },
+  remarcada:  { label: 'Rescheduled',  color: '#9B7EC8' },
 }
 
 const contratoDescricao = (tipo: ContratoTipo, valor: number, qtd?: number | null, dia?: number | null) => {
   const valorFmt = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  if (tipo === 'por_sessao') return `${valorFmt} por sessão`
-  if (tipo === 'pacote') return `${qtd ?? '?'} sessões por ${valorFmt}`
-  return `${valorFmt}/mês — venc. dia ${dia ?? '?'}`
+  if (tipo === 'por_sessao') return `${valorFmt} per session`
+  if (tipo === 'pacote') return `${qtd ?? '?'} sessions for ${valorFmt}`
+  return `${valorFmt}/month — due day ${dia ?? '?'}`
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -990,12 +990,12 @@ export function PacienteDetalhePage() {
   const { paciente, sessoes, contrato, stats, loading, arquivar } = usePacienteDetalhe(id!)
 
   async function handleArquivar() {
-    if (!window.confirm(`Arquivar ${paciente?.nome}? O histórico de sessões será mantido.`)) return
+    if (!window.confirm(`Archive ${paciente?.nome}? The session history will be kept.`)) return
     try {
       await arquivar()
       navigate('/pacientes')
     } catch {
-      alert('Erro ao arquivar. Tente novamente.')
+      alert('Error archiving. Try again.')
     }
   }
 
@@ -1010,9 +1010,9 @@ export function PacienteDetalhePage() {
   if (!paciente) {
     return (
       <div className="p-6 text-center">
-        <p className="text-muted">Paciente não encontrado.</p>
+        <p className="text-muted">Patient not found.</p>
         <Link to="/pacientes" className="text-primary text-sm mt-2 inline-block hover:underline">
-          Voltar para Pacientes
+          Back to Patients
         </Link>
       </div>
     )
@@ -1033,7 +1033,7 @@ export function PacienteDetalhePage() {
           <div>
             <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">{paciente.nome}</h1>
             {idade !== null && (
-              <p className="text-sm text-muted">{idade} anos</p>
+              <p className="text-sm text-muted">{idade} years old</p>
             )}
           </div>
         </div>
@@ -1042,11 +1042,11 @@ export function PacienteDetalhePage() {
           className="flex items-center gap-1.5 text-sm text-muted border border-border px-3 py-2 rounded-lg hover:bg-bg hover:text-[#1C1C1C] transition-colors"
         >
           <Archive size={15} />
-          Arquivar
+          Archive
         </button>
       </div>
 
-      {/* Contato */}
+      {/* Contact */}
       <div className="bg-surface rounded-card border border-border p-4 mb-4 flex flex-col gap-2">
         {paciente.telefone && (
           <div className="flex items-center gap-2 text-sm text-[#1C1C1C]">
@@ -1063,15 +1063,15 @@ export function PacienteDetalhePage() {
         {paciente.data_nascimento && (
           <div className="flex items-center gap-2 text-sm text-[#1C1C1C]">
             <Calendar size={14} className="text-muted shrink-0" />
-            {format(new Date(paciente.data_nascimento), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {format(new Date(paciente.data_nascimento), "MMMM d', 'yyyy", { locale: ptBR })}
           </div>
         )}
         {!paciente.telefone && !paciente.email && !paciente.data_nascimento && (
-          <p className="text-sm text-muted">Sem dados de contato cadastrados.</p>
+          <p className="text-sm text-muted">No contact data registered.</p>
         )}
       </div>
 
-      {/* Contrato ativo */}
+      {/* Active contract */}
       {contrato && (
         <div className="bg-primary-light rounded-card border border-primary/20 p-4 mb-4 flex items-center gap-2">
           <Banknote size={16} className="text-primary shrink-0" />
@@ -1083,21 +1083,21 @@ export function PacienteDetalhePage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <StatCard label="Total de sessões" value={stats.total} />
-        <StatCard label="Concluídas" value={stats.concluidas} />
-        <StatCard label="Faltas" value={stats.faltas} />
+        <StatCard label="Total sessions" value={stats.total} />
+        <StatCard label="Completed" value={stats.concluidas} />
+        <StatCard label="Missed" value={stats.faltas} />
         <StatCard
-          label="Total pago"
+          label="Total paid"
           value={stats.totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         />
       </div>
 
-      {/* Histórico */}
+      {/* History */}
       <div>
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Histórico de sessões</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Session history</h2>
 
         {sessoes.length === 0 ? (
-          <p className="text-center py-8 text-sm text-muted">Nenhuma sessão registrada.</p>
+          <p className="text-center py-8 text-sm text-muted">No sessions registered.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {sessoes.map(s => {
@@ -1121,7 +1121,7 @@ export function PacienteDetalhePage() {
                       )}
                     </div>
                     <p className="text-sm text-[#1C1C1C]">
-                      {format(new Date(s.data_hora), "d MMM yyyy 'às' HH:mm", { locale: ptBR })}
+                      {format(new Date(s.data_hora), "d MMM yyyy 'at' HH:mm", { locale: ptBR })}
                     </p>
                   </div>
                   <div className="text-right">
@@ -1131,7 +1131,7 @@ export function PacienteDetalhePage() {
                       </p>
                     )}
                     {s.pago && (
-                      <p className="text-xs text-[#4CAF82] mt-0.5">Pago</p>
+                      <p className="text-xs text-[#4CAF82] mt-0.5">Paid</p>
                     )}
                   </div>
                 </div>
@@ -1145,25 +1145,25 @@ export function PacienteDetalhePage() {
 }
 ```
 
-- [ ] **Step 2: Verificar no browser**
+- [ ] **Step 2: Verify in the browser**
 
-Navegar para `/pacientes`, criar um paciente com contrato, clicar no card para abrir o perfil.
+Navigate to `/pacientes`, create a patient with a contract, click on the card to open the profile.
 
 Expected:
-- Header com nome do paciente, idade (se data de nascimento preenchida), botão Arquivar
-- Card de contato com telefone/email/nascimento
-- Banner teal com info do contrato (se cadastrado)
-- 4 stat cards: Total, Concluídas, Faltas, Total Pago
-- Seção "Histórico de sessões" (vazio se nenhuma sessão ainda)
-- Clicar "Arquivar" → confirm dialog → redireciona para `/pacientes`
+- Header with patient name, age (if birth date is filled), Archive button
+- Contact card with phone/email/birth date
+- Teal banner with contract info (if registered)
+- 4 stat cards: Total, Completed, Missed, Total Paid
+- "Session history" section (empty if no sessions yet)
+- Click "Archive" → confirm dialog → redirects to `/pacientes`
 
-- [ ] **Step 3: Rodar todos os testes para confirmar que nenhum quebrou**
+- [ ] **Step 3: Run all tests to confirm none broke**
 
 ```
 npx vitest run
 ```
 
-Expected: todos passando
+Expected: all passing
 
 - [ ] **Step 4: Commit**
 
@@ -1174,13 +1174,13 @@ git commit -m "feat: implement PacienteDetalhePage with stats and session histor
 
 ---
 
-## Checklist de verificação final
+## Final Verification Checklist
 
-Após todos os tasks:
+After all tasks:
 
-- [ ] `npx vitest run` — todos os testes passam
-- [ ] `npx vite build` — build sem erros
-- [ ] No browser: `/pacientes` → lista vazia com botão "Novo"
-- [ ] `/pacientes/novo` → formulário funciona, validação funciona, submit redireciona
-- [ ] `/pacientes/:id` → perfil com stats, contrato, histórico
-- [ ] Arquivar paciente → some da lista, histórico preservado no Supabase
+- [ ] `npx vitest run` — all tests pass
+- [ ] `npx vite build` — build without errors
+- [ ] In the browser: `/pacientes` → empty list with "New" button
+- [ ] `/pacientes/novo` → form works, validation works, submit redirects
+- [ ] `/pacientes/:id` → profile with stats, contract, history
+- [ ] Archive patient → disappears from the list, history preserved in Supabase
