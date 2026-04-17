@@ -27,13 +27,14 @@ function getStatusColor(s: SessaoStatus): string {
   return map[s]
 }
 
-function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onRemarcar }: {
+function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onRemarcar, disabled }: {
   sessao: SessaoView
   update: StatusUpdate | undefined
   pagamento: PagamentoUpdate | undefined
   onUpdate: (u: StatusUpdate) => void
   onPagamento: (p: PagamentoUpdate) => void
   onRemarcar: () => void
+  disabled?: boolean
 }) {
   const novoStatus = update?.status
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
@@ -85,7 +86,8 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
         ))}
         <button
           onClick={onRemarcar}
-          className="text-xs px-3 py-1 rounded-lg border transition-colors"
+          disabled={disabled}
+          className="text-xs px-3 py-1 rounded-lg border transition-colors disabled:opacity-50"
           style={{ borderColor: '#9B7EC8', color: '#9B7EC8' }}
         >
           Remarcar
@@ -154,6 +156,8 @@ export function ChecklistPage() {
   const [pagamentos, setPagamentos] = useState<PagamentoUpdate[]>([])
   const [salvando, setSalvando] = useState(false)
   const [remarcarSessao, setRemarcarSessao] = useState<SessaoView | null>(null)
+  const [salvandoRemarcar, setSalvandoRemarcar] = useState(false)
+  const [erroRemarcar, setErroRemarcar] = useState<string | null>(null)
 
   const pendentes = sessoes.filter(s => s.status === 'agendada' || s.status === 'confirmada')
   const totalAlteracoes = updates.length + pagamentos.filter(p => p.pago).length
@@ -167,6 +171,8 @@ export function ChecklistPage() {
   }
 
   async function handleRemarcar(sessao: SessaoView, novaDataHora: string) {
+    setSalvandoRemarcar(true)
+    setErroRemarcar(null)
     try {
       const { error: updateError } = await supabase
         .from('sessoes')
@@ -196,7 +202,9 @@ export function ChecklistPage() {
       setRemarcarSessao(null)
       await refetch()
     } catch {
-      // error visible to user via refetch showing unchanged state
+      setErroRemarcar('Erro ao remarcar. Tente novamente.')
+    } finally {
+      setSalvandoRemarcar(false)
     }
   }
 
@@ -266,6 +274,7 @@ export function ChecklistPage() {
               onUpdate={handleUpdate}
               onPagamento={handlePagamento}
               onRemarcar={() => setRemarcarSessao(s)}
+              disabled={salvandoRemarcar}
             />
           ))}
         </div>
@@ -277,6 +286,9 @@ export function ChecklistPage() {
           onClose={() => setRemarcarSessao(null)}
           onConfirmar={novaDataHora => handleRemarcar(remarcarSessao, novaDataHora)}
         />
+      )}
+      {erroRemarcar && (
+        <p className="text-sm text-[#E07070] text-center mt-2">{erroRemarcar}</p>
       )}
     </div>
   )
