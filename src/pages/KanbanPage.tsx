@@ -1,142 +1,199 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
-import { useKanban } from '@/hooks/useKanban'
-import { SessaoCard } from '@/components/sessao/SessaoCard'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { startOfWeek, addWeeks, subWeeks, addDays, format, isSameWeek } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { supabase } from '@/lib/supabase'
+import { useSemana } from '@/hooks/useSemana'
+import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
+import { SemanaGrid } from '@/components/semana/SemanaGrid'
 import { NovaSessaoModal } from '@/components/sessao/NovaSessaoModal'
+import { STATUS_CONFIG } from '@/lib/statusConfig'
 import type { SessaoStatus, SessaoView } from '@/lib/types'
 
-const COLUNAS: { status: SessaoStatus; titulo: string }[] = [
-  { status: 'agendada',   titulo: 'Agendadas' },
-  { status: 'confirmada', titulo: 'Confirmadas' },
-  { status: 'concluida',  titulo: 'Concluídas' },
-  { status: 'faltou',     titulo: 'Faltaram' },
-  { status: 'cancelada',  titulo: 'Canceladas' },
-  { status: 'remarcada',  titulo: 'Remarcadas' },
-]
+function parseHora(t: string | null | undefined, fallback: number): number {
+  if (!t) return fallback
+  const h = parseInt(t.split(':')[0], 10)
+  return isNaN(h) ? fallback : h
+}
 
 const STATUS_ACOES: Partial<Record<SessaoStatus, SessaoStatus[]>> = {
   agendada:   ['confirmada', 'concluida', 'faltou', 'cancelada', 'remarcada'],
   confirmada: ['concluida', 'faltou', 'cancelada', 'remarcada'],
 }
 
-const ACTION_LABEL: Record<SessaoStatus, string> = {
-  agendada:   'Agendada',
-  confirmada: 'Confirmada',
-  concluida:  'Concluída',
-  faltou:     'Faltou',
-  cancelada:  'Cancelada',
-  remarcada:  'Remarcada',
-}
-
-function getColor(s: SessaoStatus): string {
-  const map: Record<SessaoStatus, string> = {
-    agendada: '#9CA3AF', confirmada: '#2D6A6A', concluida: '#4CAF82',
-    faltou: '#C17F59', cancelada: '#E07070', remarcada: '#9B7EC8',
-  }
-  return map[s]
-}
-
-function CardMenu({ sessao, onUpdate }: { sessao: SessaoView; onUpdate: (s: SessaoStatus, r?: string) => void }) {
-  const acoes = STATUS_ACOES[sessao.status]
+function SessaoPanel({
+  sessao,
+  onClose,
+  onUpdate,
+}: {
+  sessao: SessaoView
+  onClose: () => void
+  onUpdate: () => void
+}) {
   const [remarcarData, setRemarcarData] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const acoes = STATUS_ACOES[sessao.status]
+  const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
+  const cfg = STATUS_CONFIG[sessao.status]
 
-  if (!acoes) return null
+  async function atualizar(novoStatus: SessaoStatus, remarcada_para?: string) {
+    setSalvando(true)
+    const patch: Record<string, unknown> = { status: novoStatus }
+    if (remarcada_para) patch.remarcada_para = remarcada_para
+    await supabase.from('sessoes').update(patch).eq('id', sessao.id)
+    onUpdate()
+    onClose()
+  }
 
   return (
-    <div className="mt-2 flex flex-wrap gap-1">
-      {acoes.map(s => (
-        s === 'remarcada' ? (
-          <div key={s} className="flex gap-1 w-full">
-            <input
-              type="datetime-local"
-              value={remarcarData}
-              onChange={e => setRemarcarData(e.target.value)}
-              className="flex-1 h-7 px-2 text-xs rounded border border-border outline-none focus:border-primary"
-            />
-            <button
-              onClick={() => remarcarData && onUpdate('remarcada', remarcarData)}
-              disabled={!remarcarData}
-              className="text-xs px-2 h-7 rounded bg-[#9B7EC820] text-[#9B7EC8] disabled:opacity-40 hover:bg-[#9B7EC840] transition-colors"
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface rounded-card border border-border w-full max-w-sm p-5 shadow-lg">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="font-medium text-[#1C1C1C]">{nomePaciente}</p>
+            <p className="text-xs text-muted mt-0.5">
+              {format(new Date(sessao.data_hora), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+            </p>
+            <span
+              className="inline-block text-xs px-2 py-0.5 rounded-full mt-1"
+              style={{ backgroundColor: `${cfg.cor}20`, color: cfg.cor }}
             >
-              Remarcar
-            </button>
+              {cfg.label}
+            </span>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-[#1C1C1C] transition-colors ml-4">
+            <X size={18} />
+          </button>
+        </div>
+
+        {acoes ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted font-medium uppercase tracking-wide mb-1">Alterar status</p>
+            <div className="flex flex-wrap gap-2">
+              {acoes.filter(s => s !== 'remarcada').map(s => (
+                <button
+                  key={s}
+                  disabled={salvando}
+                  onClick={() => atualizar(s)}
+                  className="text-xs px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50"
+                  style={{ borderColor: STATUS_CONFIG[s].cor, color: STATUS_CONFIG[s].cor }}
+                >
+                  {STATUS_CONFIG[s].label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="datetime-local"
+                value={remarcarData}
+                onChange={e => setRemarcarData(e.target.value)}
+                className="flex-1 h-8 px-2 text-xs rounded-lg border border-border outline-none focus:border-primary"
+              />
+              <button
+                disabled={!remarcarData || salvando}
+                onClick={() => atualizar('remarcada', remarcarData)}
+                className="text-xs px-3 h-8 rounded-lg border disabled:opacity-40 transition-colors"
+                style={{ borderColor: STATUS_CONFIG.remarcada.cor, color: STATUS_CONFIG.remarcada.cor }}
+              >
+                Remarcar
+              </button>
+            </div>
           </div>
         ) : (
-          <button
-            key={s}
-            onClick={() => onUpdate(s)}
-            className="text-xs px-2 py-0.5 rounded transition-colors"
-            style={{ backgroundColor: `${getColor(s)}20`, color: getColor(s) }}
-          >
-            {ACTION_LABEL[s]}
-          </button>
-        )
-      ))}
+          <p className="text-sm text-muted text-center py-2">Sessão já finalizada.</p>
+        )}
+      </div>
     </div>
   )
 }
 
 export function KanbanPage() {
-  const { colunas, loading, updateStatus, refetch } = useKanban()
+  const [weekStart, setWeekStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  )
   const [modalAberto, setModalAberto] = useState(false)
-  const [cardExpandido, setCardExpandido] = useState<string | null>(null)
+  const [defaultDateTime, setDefaultDateTime] = useState<string | undefined>()
+  const [sessaoSelecionada, setSessaoSelecionada] = useState<SessaoView | null>(null)
+
+  const { sessoes, loading, refetch } = useSemana(weekStart)
+  const { config } = useConfigPsicologo()
+  const horaInicio = parseHora(config?.horario_inicio, 7)
+  const horaFim = parseHora(config?.horario_fim, 21)
+
+  const isEstaSemana = isSameWeek(weekStart, new Date(), { weekStartsOn: 1 })
+  const labelSemana =
+    format(weekStart, "d MMM", { locale: ptBR }) +
+    ' – ' +
+    format(addDays(weekStart, 6), "d MMM yyyy", { locale: ptBR })
+
+  function handleCelulaClick(dataHora: string) {
+    setDefaultDateTime(dataHora)
+    setModalAberto(true)
+  }
 
   return (
-    <div className="p-4 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Kanban</h1>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeekStart(w => subWeeks(w, 1))}
+            className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-sm font-medium text-[#1C1C1C] capitalize min-w-[160px] text-center">
+            {labelSemana}
+          </span>
+          <button
+            onClick={() => setWeekStart(w => addWeeks(w, 1))}
+            className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
+          >
+            <ChevronRight size={18} />
+          </button>
+          {!isEstaSemana && (
+            <button
+              onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+              className="text-xs text-primary hover:underline ml-1"
+            >
+              Esta semana
+            </button>
+          )}
+        </div>
         <button
-          onClick={() => setModalAberto(true)}
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          onClick={() => { setDefaultDateTime(undefined); setModalAberto(true) }}
+          className="bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
         >
-          <Plus size={16} />
-          Nova sessão
+          + Nova sessão
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {COLUNAS.map(({ status, titulo }) => (
-            <div key={status} className="min-w-[220px] flex-shrink-0">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getColor(status) }} />
-                <span className="text-xs font-semibold text-muted uppercase tracking-wide">{titulo}</span>
-                <span className="text-xs text-muted ml-auto">({colunas[status].length})</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {colunas[status].map(s => (
-                  <div key={s.id}>
-                    <SessaoCard sessao={s} onClick={() => setCardExpandido(cardExpandido === s.id ? null : s.id)} />
-                    {cardExpandido === s.id && (
-                      <CardMenu
-                        sessao={s}
-                        onUpdate={async (novoStatus, remarcarData) => {
-                          await updateStatus(s.id, novoStatus, remarcarData)
-                          setCardExpandido(null)
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-                {colunas[status].length === 0 && (
-                  <div className="rounded-card border border-dashed border-border p-4 text-center">
-                    <p className="text-xs text-muted">Nenhuma sessão</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Grid */}
+      <div className="flex-1 overflow-auto">
+        <SemanaGrid
+          weekStart={weekStart}
+          sessoes={sessoes}
+          loading={loading}
+          horaInicio={horaInicio}
+          horaFim={horaFim}
+          onCelulaClick={handleCelulaClick}
+          onSessaoClick={setSessaoSelecionada}
+        />
+      </div>
 
+      {/* Modals */}
       {modalAberto && (
         <NovaSessaoModal
+          defaultDate={defaultDateTime}
           onClose={() => setModalAberto(false)}
           onSaved={() => { refetch(); setModalAberto(false) }}
+        />
+      )}
+      {sessaoSelecionada && (
+        <SessaoPanel
+          sessao={sessaoSelecionada}
+          onClose={() => setSessaoSelecionada(null)}
+          onUpdate={refetch}
         />
       )}
     </div>

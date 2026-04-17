@@ -43,7 +43,7 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       tipo: 'paciente',
-      data_hora: defaultDate ? `${defaultDate}T08:00` : '',
+      data_hora: defaultDate?.includes('T') ? defaultDate : defaultDate ? `${defaultDate}T08:00` : '',
     },
   })
 
