@@ -12,17 +12,24 @@ export function OnboardingPage() {
   const [step, setStep] = useState<Step>(1)
   const [dadosStep1, setDadosStep1] = useState<StepDadosData | null>(null)
   const [modalidades, setModalidades] = useState<string[]>([])
+  const [erroFinal, setErroFinal] = useState<string | null>(null)
 
   async function finalize(whatsappOpcao: 'agora' | 'depois' | 'nao') {
     if (!dadosStep1) return
+    setErroFinal(null)
 
-    await supabase.from('config_psicologo').insert({
+    const { error } = await supabase.from('config_psicologo').insert({
       nome: dadosStep1.nome,
       horario_inicio: dadosStep1.horario_inicio,
       horario_fim: dadosStep1.horario_fim,
       horario_checklist: dadosStep1.horario_checklist,
       automacao_whatsapp_ativa: false,
     })
+
+    if (error) {
+      setErroFinal('Erro ao salvar configurações. Tente novamente.')
+      return
+    }
 
     const extras = modalidades.filter((m) => !['Presencial', 'Online'].includes(m))
     if (extras.length > 0) {
@@ -54,6 +61,10 @@ export function OnboardingPage() {
             />
           ))}
         </div>
+
+        {erroFinal && (
+          <p className="text-sm text-[#E07070] text-center mb-4">{erroFinal}</p>
+        )}
 
         <div className="bg-surface rounded-card p-6 shadow-sm border border-border">
           {step === 1 && (

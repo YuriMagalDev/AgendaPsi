@@ -25,11 +25,16 @@ export function SessaoCard({ sessao, onClick }: Props) {
         {sessao.modalidades?.nome && (
           <span className="text-xs text-muted">· {sessao.modalidades.nome}</span>
         )}
-        {sessao.valor_cobrado != null && (
-          <span className="text-xs font-mono text-muted ml-auto">
-            {sessao.valor_cobrado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-          </span>
-        )}
+        <span className="ml-auto flex items-center gap-1">
+          {sessao.valor_cobrado != null && (
+            <span className="text-xs font-mono text-muted">
+              {sessao.valor_cobrado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          )}
+          {sessao.status === 'concluida' && !sessao.pago && (
+            <span className="text-xs text-[#C17F59] font-medium">· pendente</span>
+          )}
+        </span>
       </div>
     </div>
   )

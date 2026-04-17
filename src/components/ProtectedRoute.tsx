@@ -12,8 +12,8 @@ export function ProtectedRoute() {
     supabase
       .from('config_psicologo')
       .select('id')
-      .maybeSingle()
-      .then(({ data }) => setOnboardingDone(data !== null))
+      .limit(1)
+      .then(({ data }) => setOnboardingDone(!!data && data.length > 0))
   }, [session])
 
   if (loading || (session && onboardingDone === null)) {

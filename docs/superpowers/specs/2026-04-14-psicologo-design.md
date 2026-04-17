@@ -1,47 +1,47 @@
-# Design Spec — Plataforma de Gestão para Psicólogos
+# Design Spec — Management Platform for Psychologists
 
-**Data:** 2026-04-14  
-**Status:** Aprovado  
-**Projeto:** Psicologo  
-
----
-
-## 1. Visão Geral
-
-Aplicativo web para psicólogos gerirem agendamentos, confirmações e financeiro de forma integrada. Uso pessoal (um único psicólogo por instalação). Construído para web com migração futura para mobile via Capacitor.
-
-### Objetivos
-- Substituir controles manuais (planilhas, papel, WhatsApp manual) por uma plataforma centralizada
-- Automatizar lembretes e confirmações de sessões via WhatsApp
-- Dar visibilidade financeira real: receita, inadimplência, repasses e projeções
-- Checklist fim de dia para atualizar status de sessões em lote
-
-### Fora do escopo
-- Prontuário clínico (anotações de sessão, diagnósticos, medicações)
-- Multi-usuário / multi-clínica
-- Portal do paciente (o paciente não acessa o app)
+**Date:** 2026-04-14  
+**Status:** Approved  
+**Project:** Psicologo  
 
 ---
 
-## 2. Stack Tecnológica
+## 1. Overview
 
-| Camada | Tecnologia |
+Web application for psychologists to manage scheduling, confirmations, and financials in an integrated way. Personal use (a single psychologist per installation). Built for the web with future migration to mobile via Capacitor.
+
+### Goals
+- Replace manual controls (spreadsheets, paper, manual WhatsApp) with a centralized platform
+- Automate session reminders and confirmations via WhatsApp
+- Give real financial visibility: revenue, defaults, revenue sharing, and projections
+- End of day checklist to update session statuses in batch
+
+### Out of scope
+- Clinical records (session notes, diagnoses, medications)
+- Multi-user / multi-clinic
+- Patient portal (the patient does not access the app)
+
+---
+
+## 2. Technology Stack
+
+| Layer | Technology |
 |---|---|
 | Frontend | React + Vite + TypeScript |
-| Mobile (futuro) | Capacitor (empacota o mesmo app React) |
+| Mobile (future) | Capacitor (packages the same React app) |
 | Backend / DB | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
-| Automação WhatsApp | Evolution API (self-hosted em VPS próprio) |
-| Estilo | TailwindCSS |
+| WhatsApp Automation | Evolution API (self-hosted on own VPS) |
+| Styling | TailwindCSS |
 
-### Decisões arquiteturais
-- O frontend conversa diretamente com Supabase via SDK (`supabase-js`) para todas as operações CRUD
-- A integração com Evolution API é exclusivamente server-side via Edge Functions — credenciais nunca expostas ao frontend
-- O Supabase Realtime atualiza o Kanban instantaneamente quando chega uma confirmação via WhatsApp
-- Ao criar uma conta, uma Edge Function provisiona automaticamente uma instância na Evolution API e armazena as credenciais no banco
+### Architectural decisions
+- The frontend talks directly to Supabase via SDK (`supabase-js`) for all CRUD operations
+- Evolution API integration is exclusively server-side via Edge Functions — credentials are never exposed to the frontend
+- Supabase Realtime updates the Kanban instantly when a confirmation arrives via WhatsApp
+- When creating an account, an Edge Function automatically provisions an instance in Evolution API and stores the credentials in the database
 
 ---
 
-## 3. Modelo de Dados
+## 3. Data Model
 
 ### `pacientes`
 ```
@@ -57,64 +57,64 @@ criado_em        timestamptz DEFAULT now()
 ### `modalidades`
 ```
 id        uuid PK
-nome      text NOT NULL  -- ex: "Presencial", "Online", "Domiciliar"
+nome      text NOT NULL  -- e.g.: "In-person", "Online", "At-home"
 ativo     boolean DEFAULT true
 ```
 
 ### `contratos`
-Forma de cobrança por paciente. Um paciente pode ter um contrato ativo por vez.
+Form of billing per patient. A patient can have one active contract at a time.
 ```
 id               uuid PK
 paciente_id      uuid FK → pacientes
 tipo             enum('por_sessao', 'pacote', 'mensal')
 valor            numeric NOT NULL
-qtd_sessoes      int         -- só para tipo 'pacote'
-dia_vencimento   int         -- só para tipo 'mensal' (dia do mês)
+qtd_sessoes      int         -- only for 'pacote' type
+dia_vencimento   int         -- only for 'mensal' type (day of the month)
 ativo            boolean DEFAULT true
 criado_em        timestamptz DEFAULT now()
 ```
 
 ### `sessoes`
-Cada atendimento agendado, seja com paciente cadastrado ou avulso.
+Each scheduled appointment, whether with a registered or standalone patient.
 ```
 id                uuid PK
 paciente_id       uuid FK → pacientes  NULLABLE
-avulso_nome       text                  -- preenchido quando paciente_id é nulo
-avulso_telefone   text                  -- opcional para avulsos
+avulso_nome       text                  -- filled when paciente_id is null
+avulso_telefone   text                  -- optional for standalone (avulsos)
 modalidade_id     uuid FK → modalidades
 data_hora         timestamptz NOT NULL
 status            enum('agendada', 'confirmada', 'concluida', 'faltou', 'cancelada', 'remarcada')
 valor_cobrado     numeric
 pago              boolean DEFAULT false
 data_pagamento    date
-remarcada_para    timestamptz           -- nova data quando status = 'remarcada'
-sessao_origem_id  uuid FK → sessoes    -- rastreia histórico de remarcações
+remarcada_para    timestamptz           -- new date when status = 'remarcada'
+sessao_origem_id  uuid FK → sessoes    -- tracks rescheduling history
 criado_em         timestamptz DEFAULT now()
 ```
 
 ### `regras_repasse`
-Regras globais de repasse definidas pelo psicólogo (ex: "sempre enviar 20% para a clínica").
+Global revenue sharing rules defined by the psychologist (e.g.: "always send 20% to the clinic").
 ```
 id           uuid PK
-nome         text NOT NULL   -- ex: "Repasse clínica"
+nome         text NOT NULL   -- e.g.: "Clinic share"
 tipo_valor   enum('percentual', 'fixo')
 valor        numeric NOT NULL
 ativo        boolean DEFAULT true
 ```
 
 ### `repasses`
-Registros gerados por sessão a partir das regras acima.
+Records generated per session from the rules above.
 ```
 id                uuid PK
 regra_repasse_id  uuid FK → regras_repasse
 sessao_id         uuid FK → sessoes
-valor_calculado   numeric NOT NULL  -- valor efetivo calculado no momento da sessão
+valor_calculado   numeric NOT NULL  -- actual value calculated at the time of the session
 pago              boolean DEFAULT false
 data_pagamento    date
 ```
 
 ### `confirmacoes_whatsapp`
-Log da automação de lembretes.
+Reminder automation log.
 ```
 id                    uuid PK
 sessao_id             uuid FK → sessoes
@@ -124,110 +124,110 @@ confirmado            boolean
 ```
 
 ### `config_psicologo`
-Configurações globais da conta.
+Global account settings.
 ```
 id                       uuid PK
 nome                     text
 horario_inicio           time
 horario_fim              time
-horario_checklist        time   -- ex: 18:00
+horario_checklist        time   -- e.g.: 18:00
 automacao_whatsapp_ativa boolean DEFAULT false
-evolution_instance_name  text   -- gerenciado internamente, nunca exposto ao frontend
-evolution_token          text   -- gerenciado internamente, nunca exposto ao frontend
+evolution_instance_name  text   -- internally managed, never exposed to the frontend
+evolution_token          text   -- internally managed, never exposed to the frontend
 whatsapp_conectado       boolean DEFAULT false
 ```
 
 ---
 
-## 4. Módulos e Funcionalidades
+## 4. Modules and Features
 
-### 4.1 Autenticação
-- Login com email + senha via Supabase Auth
-- Sessão persistente
-- Conta criada manualmente (sem cadastro público)
+### 4.1 Authentication
+- Login with email + password via Supabase Auth
+- Persistent session
+- Manually created account (no public registration)
 
-### 4.2 Pacientes
-- Cadastro: nome, WhatsApp, email, data de nascimento, modalidade padrão, contrato de cobrança
-- Listagem com busca por nome
-- Perfil: histórico de sessões, total pago, faltas, remarcações
-- Arquivar paciente (sem deletar histórico)
+### 4.2 Patients
+- Registration: name, WhatsApp, email, birth date, default modality, billing contract
+- Listing with search by name
+- Profile: session history, total paid, absences, reschedulings
+- Archive patient (without deleting history)
 
-### 4.3 Agenda (duas visões)
+### 4.3 Schedule (two views)
 
-**Visão Kanban por status:**
-Colunas: `A confirmar` · `Confirmado` · `Concluído` · `Faltou` · `Cancelado` · `Remarcado`
-Cada card: nome do paciente, horário, modalidade, valor
+**Kanban view by status:**
+Columns: `To confirm` · `Confirmed` · `Completed` · `Missed` · `Canceled` · `Rescheduled`
+Each card: patient name, time, modality, amount
 
-**Visão Agenda por dia:**
-Lista cronológica do dia selecionado com os mesmos cards
+**Schedule view by day:**
+Chronological list of the selected day with the same cards
 
-- Navegação entre dias em ambas as visões
-- Criação de sessão avulsa ou para paciente cadastrado direto da agenda
-- Kanban atualizado em tempo real via Supabase Realtime
+- Navigation between days in both views
+- Creation of a standalone session or for a registered patient directly from the schedule
+- Kanban updated in real-time via Supabase Realtime
 
-### 4.4 Atendimentos Avulsos
-- Sessão sem paciente cadastrado: preenche nome + telefone (opcional) + valor + modalidade
-- Botão "Converter em paciente" no card do avulso
-- Ao converter: abre formulário pré-preenchido; sessões avulsas anteriores são vinculadas ao novo cadastro
+### 4.4 Standalone Sessions (Avulsos)
+- Session without registered patient: fills name + phone (optional) + amount + modality
+- "Convert to patient" button on the standalone card
+- When converting: opens pre-filled form; previous standalone sessions are linked to the new registration
 
-### 4.5 Checklist Fim de Dia
-- Disparo automático no horário configurado (padrão: 18h)
-- Exibe todas as sessões do dia com status ainda em `agendada` ou `confirmada`
-- Para cada sessão: botões **Concluída · Faltou · Cancelada · Remarcada**
-- Se "Remarcada": abre seletor de nova data/hora
-- Atualização em batch ao finalizar
+### 4.5 End of Day Checklist
+- Automatic trigger at configured time (default: 18:00)
+- Displays all sessions of the day with status still in `agendada` or `confirmada`
+- For each session: buttons **Completed · Missed · Canceled · Rescheduled**
+- If "Rescheduled": opens new date/time selector
+- Batch update upon completion
 
-### 4.6 Automação WhatsApp (Evolution API) — opcional
-- **QR Code de check-in:** QR gerado por paciente; ao escanear, registra o número no sistema
-- **Lembrete D-1:** Edge Function cron diária envia mensagem com botão sim/não para cada sessão do dia seguinte
-- **Webhook de resposta:** Evolution API → Edge Function → atualiza status no banco → Realtime reflete no Kanban
-- Quando desativada: app funciona normalmente; confirmações são manuais
+### 4.6 WhatsApp Automation (Evolution API) — optional
+- **Check-in QR Code:** QR generated per patient; upon scanning, registers the number in the system
+- **D-1 Reminder:** daily Edge Function cron sends message with yes/no button for each session of the next day
+- **Reply Webhook:** Evolution API → Edge Function → updates status in database → Realtime reflects in Kanban
+- When disabled: app works normally; confirmations are manual
 
-### 4.7 Financeiro
-- Painel mensal: receita total, sessões pagas/pendentes, inadimplência
-- Detalhamento por paciente: total histórico, última sessão, saldo pendente
-- Repasses: valor devido por clínica/supervisor no mês (fixo ou percentual)
-- Projeção: estimativa do mês com base nas sessões agendadas
+### 4.7 Financials
+- Monthly dashboard: total revenue, paid/pending sessions, defaults
+- Details per patient: historical total, last session, pending balance
+- Revenue sharing: amount owed per clinic/supervisor in the month (fixed or percentage)
+- Projection: month estimation based on scheduled sessions
 
-### 4.8 Configurações
-- Gerenciar modalidades (criar, editar, arquivar)
-- Configurar horário do checklist fim de dia
-- Status da conexão WhatsApp + reconectar
-- Dados do psicólogo (nome, horário de atendimento)
-
----
-
-## 5. Onboarding (Primeiro Acesso)
-
-Wizard de 3 etapas ao criar conta:
-
-**Etapa 1 — Dados básicos**
-Nome, horário de atendimento, horário do checklist.
-
-**Etapa 2 — Modalidades**
-Confirma "Presencial" e "Online"; pode adicionar outras.
-
-**Etapa 3 — WhatsApp (opcional)**
-Apresenta aviso de boas práticas antes de qualquer configuração:
-
-> "Recomendamos usar um número de WhatsApp dedicado ao consultório — não o seu número pessoal. Isso evita misturar conversas com pacientes e protege sua privacidade. Você precisará de um chip separado ou número virtual."
-
-Opções:
-- **Configurar agora:** app provisiona instância Evolution API automaticamente → exibe QR Code → confirma conexão
-- **Configurar depois:** pula para o app
-- **Não usar automação:** desativa (reversível em Configurações)
-
-O psicólogo nunca vê URL, token ou qualquer dado técnico da Evolution API.
+### 4.8 Settings
+- Manage modalities (create, edit, archive)
+- Configure end of day checklist time
+- WhatsApp connection status + reconnect
+- Psychologist data (name, working hours)
 
 ---
 
-## 6. Navegação
+## 5. Onboarding (First Access)
+
+3-step wizard upon account creation:
+
+**Step 1 — Basic data**
+Name, working hours, checklist time.
+
+**Step 2 — Modalities**
+Confirms "In-person" and "Online"; can add others.
+
+**Step 3 — WhatsApp (optional)**
+Presents a best practices warning before any configuration:
+
+> "We recommend using a dedicated WhatsApp number for the office — not your personal number. This avoids mixing conversations with patients and protects your privacy. You will need a separate SIM card or virtual number."
+
+Options:
+- **Configure now:** app automatically provisions Evolution API instance → displays QR Code → confirms connection
+- **Configure later:** skips to the app
+- **Do not use automation:** disables (reversible in Settings)
+
+The psychologist never sees the URL, token, or any technical data of the Evolution API.
+
+---
+
+## 6. Navigation
 
 ```
 /login
 /onboarding
 
-/agenda          (padrão)
+/agenda          (default)
 /kanban
 /checklist
 
@@ -242,33 +242,33 @@ O psicólogo nunca vê URL, token ou qualquer dado técnico da Evolution API.
 ```
 
 **Bottom navigation (mobile) / Sidebar (desktop):**
-Agenda · Kanban · Pacientes · Financeiro · Configurações
+Schedule (Agenda) · Kanban · Patients · Financials · Settings
 
 ---
 
-## 7. Tratamento de Erros
+## 7. Error Handling
 
-| Situação | Comportamento |
+| Situation | Behavior |
 |---|---|
-| Evolution API offline | Banner discreto; app funciona normalmente sem automação |
-| Paciente não responde lembrete | Sessão fica em `a confirmar`; aparece destacada no checklist |
-| Remarcação | Nova sessão criada com `sessao_origem_id`; histórico visível no perfil |
-| Sessão sem contrato | Permite valor avulso na criação |
-| Avulso sem telefone | Lembrete WhatsApp não enviado; sem erro |
+| Evolution API offline | Discreet banner; app works normally without automation |
+| Patient does not reply to reminder | Session stays in `a confirmar` (to confirm); appears highlighted in the checklist |
+| Rescheduling | New session created with `sessao_origem_id`; history visible in profile |
+| Session without contract | Allows standalone amount upon creation |
+| Standalone without phone | WhatsApp reminder not sent; no error |
 
 ---
 
-## 8. Testes
+## 8. Testing
 
-- Testes de integração nas Edge Functions (lembrete D-1, webhook, provisionamento)
-- Testes manuais nas telas principais antes de cada deploy
-- Sem E2E automatizado na fase inicial
+- Integration tests in Edge Functions (D-1 reminder, webhook, provisioning)
+- Manual tests on main screens before each deploy
+- No automated E2E in the initial phase
 
 ---
 
-## 9. Infraestrutura
+## 9. Infrastructure
 
-- VPS próprio rodando Evolution API (self-hosted)
+- Own VPS running Evolution API (self-hosted)
 - Supabase project (hosted)
-- Deploy do frontend: Vercel ou Netlify
-- Mobile (futuro): Capacitor empacota o build React para iOS/Android
+- Frontend deploy: Vercel or Netlify
+- Mobile (future): Capacitor packages the React build for iOS/Android

@@ -65,6 +65,7 @@ function gerarSessoesParaSlot(pacienteId: string, slot: SlotSemanalInput, semana
   const [hh, mm] = slot.horario.split(':').map(Number)
   const dia = slot.dia_semana as Day
   const inicio = getDay(hoje) === dia ? hoje : nextDay(hoje, dia)
+  const pagoAutomatico = slot.is_pacote
   return Array.from({ length: semanas }, (_, i) => {
     const base = addWeeks(inicio, i)
     return {
@@ -74,9 +75,9 @@ function gerarSessoesParaSlot(pacienteId: string, slot: SlotSemanalInput, semana
       modalidade_id: slot.modalidade_id,
       data_hora: setMinutes(setHours(base, hh), mm).toISOString(),
       status: 'agendada' as SessaoStatus,
-      valor_cobrado: slot.valor_cobrado,
-      pago: false,
-      data_pagamento: null,
+      valor_cobrado: null,
+      pago: pagoAutomatico,
+      data_pagamento: pagoAutomatico ? new Date().toISOString() : null,
       remarcada_para: null,
       sessao_origem_id: null,
     }
@@ -106,6 +107,7 @@ export function NovoPacientePage() {
   const { modalidades } = useModalidades()
   const [serverError, setServerError] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotSemanalInput[]>([])
+  const [semanas, setSemanas] = useState(8)
 
   const {
     register,
@@ -121,7 +123,7 @@ export function NovoPacientePage() {
   const contratoTipo = watch('contrato_tipo')
 
   const adicionarSlot = () =>
-    setSlots(p => [...p, { dia_semana: 1, horario: '09:00', modalidade_id: '', valor_cobrado: null }])
+    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', modalidade_id: '', is_pacote: false }])
   const removerSlot = (i: number) => setSlots(p => p.filter((_, j) => j !== i))
   const atualizarSlot = (i: number, campo: keyof SlotSemanalInput, val: unknown) =>
     setSlots(p => p.map((s, j) => j === i ? { ...s, [campo]: val } : s))
@@ -129,7 +131,7 @@ export function NovoPacientePage() {
   async function onSubmit(data: FormData) {
     setServerError(null)
 
-    const slotsInvalidos = slots.some(s => !s.modalidade_id || !s.horario)
+    const slotsInvalidos = slots.some(s => !s.modalidade_id || !s.horario || !s.nome.trim())
     if (slotsInvalidos) {
       setServerError('Preencha modalidade e horário em todos os horários semanais.')
       return
@@ -157,7 +159,7 @@ export function NovoPacientePage() {
         )
         if (slotErr) throw slotErr
 
-        const sessoesBulk = slots.flatMap(s => gerarSessoesParaSlot(id, s, 8))
+        const sessoesBulk = slots.flatMap(s => gerarSessoesParaSlot(id, s, semanas))
         const { error: sessErr } = await supabase.from('sessoes').insert(sessoesBulk)
         if (sessErr) throw sessErr
       }
@@ -222,59 +224,84 @@ export function NovoPacientePage() {
 
           {slots.length === 0 && (
             <p className="text-sm text-muted">
-              Defina os dias e horários recorrentes do paciente. As próximas 8 sessões serão criadas automaticamente.
+              Defina os dias e horários recorrentes do paciente. As sessões serão criadas automaticamente.
             </p>
           )}
 
           {slots.map((slot, i) => (
-            <div key={i} className="flex items-center gap-2 flex-wrap">
-              <select
-                value={slot.dia_semana}
-                onChange={e => atualizarSlot(i, 'dia_semana', Number(e.target.value))}
-                className={selectClass}
-              >
-                {DIAS.map(d => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
-              </select>
+            <div key={i} className="flex flex-col gap-2 pb-3 border-b border-border last:border-0 last:pb-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="text"
+                  placeholder="Nome do horário (ex: Sessão semanal)"
+                  value={slot.nome}
+                  onChange={e => atualizarSlot(i, 'nome', e.target.value)}
+                  className={`${inputClass} flex-1 min-w-[160px]`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removerSlot(i)}
+                  className="text-muted hover:text-[#E07070] transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={slot.dia_semana}
+                  onChange={e => atualizarSlot(i, 'dia_semana', Number(e.target.value))}
+                  className={selectClass}
+                >
+                  {DIAS.map(d => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
 
-              <input
-                type="time"
-                value={slot.horario}
-                onChange={e => atualizarSlot(i, 'horario', e.target.value)}
-                className={`${selectClass} w-28`}
-              />
+                <input
+                  type="time"
+                  value={slot.horario}
+                  onChange={e => atualizarSlot(i, 'horario', e.target.value)}
+                  className={`${selectClass} w-28`}
+                />
 
-              <select
-                value={slot.modalidade_id}
-                onChange={e => atualizarSlot(i, 'modalidade_id', e.target.value)}
-                className={`${selectClass} flex-1 min-w-[120px]`}
-              >
-                <option value="">Modalidade...</option>
-                {modalidades.map(m => (
-                  <option key={m.id} value={m.id}>{m.nome}</option>
-                ))}
-              </select>
+                <select
+                  value={slot.modalidade_id}
+                  onChange={e => atualizarSlot(i, 'modalidade_id', e.target.value)}
+                  className={`${selectClass} flex-1 min-w-[120px]`}
+                >
+                  <option value="">Modalidade...</option>
+                  {modalidades.map(m => (
+                    <option key={m.id} value={m.id}>{m.nome}</option>
+                  ))}
+                </select>
 
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="R$ valor"
-                value={slot.valor_cobrado ?? ''}
-                onChange={e => atualizarSlot(i, 'valor_cobrado', e.target.value ? Number(e.target.value) : null)}
-                className={`${selectClass} w-24`}
-              />
-
-              <button
-                type="button"
-                onClick={() => removerSlot(i)}
-                className="text-muted hover:text-[#E07070] transition-colors"
-              >
-                <Trash2 size={16} />
-              </button>
+                <label className="flex items-center gap-1.5 text-sm text-[#1C1C1C] cursor-pointer whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={slot.is_pacote}
+                    onChange={e => atualizarSlot(i, 'is_pacote', e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  É pacote
+                </label>
+              </div>
             </div>
           ))}
+
+          {slots.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-[#1C1C1C] whitespace-nowrap">Gerar para as próximas</label>
+              <input
+                type="number"
+                min="1"
+                max="52"
+                value={semanas}
+                onChange={e => setSemanas(Math.max(1, Number(e.target.value)))}
+                className={`${selectClass} w-20`}
+              />
+              <span className="text-sm text-[#1C1C1C]">semanas</span>
+            </div>
+          )}
         </div>
 
         {/* Cobrança */}

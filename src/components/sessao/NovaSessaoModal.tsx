@@ -135,10 +135,12 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
             {errors.data_hora && <span className="text-xs text-[#E07070]">{errors.data_hora.message}</span>}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#1C1C1C]">Valor (R$)</label>
-            <input {...register('valor_cobrado')} type="number" step="0.01" min="0" placeholder="0,00" className={inputClass} />
-          </div>
+          {tipo === 'avulso' && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Valor (R$)</label>
+              <input {...register('valor_cobrado')} type="number" step="0.01" min="0" placeholder="0,00" className={inputClass} />
+            </div>
+          )}
 
           {serverError && <p className="text-sm text-[#E07070] text-center">{serverError}</p>}
 
