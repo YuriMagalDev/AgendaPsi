@@ -9,7 +9,7 @@ vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({ data: { id: '1' }, error: null }),
+      limit: vi.fn().mockResolvedValue({ data: [{ id: '1' }], error: null }),
     })),
   },
 }))
