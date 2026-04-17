@@ -93,3 +93,8 @@ export interface ConfigPsicologo {
 export type SessaoComModalidade = Sessao & {
   modalidades: { nome: string } | null
 }
+
+export type SessaoView = Sessao & {
+  modalidades: { nome: string } | null
+  pacientes: { nome: string } | null
+}
