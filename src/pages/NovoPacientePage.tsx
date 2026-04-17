@@ -9,6 +9,7 @@ import type { Day } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { usePacientes } from '@/hooks/usePacientes'
 import { useModalidades } from '@/hooks/useModalidades'
+import { useConvenios } from '@/hooks/useConvenios'
 import type { ContratoTipo, SessaoStatus, SlotSemanalInput } from '@/lib/types'
 
 const schema = z
@@ -17,6 +18,8 @@ const schema = z
     telefone: z.string().optional(),
     email: z.string().optional(),
     data_nascimento: z.string().optional(),
+    tipo: z.enum(['particular', 'convenio']).default('particular'),
+    convenio_id: z.string().optional(),
     tem_contrato: z.boolean(),
     contrato_tipo: z.enum(['por_sessao', 'pacote', 'mensal']).optional(),
     contrato_valor: z.string().optional(),
@@ -27,7 +30,10 @@ const schema = z
     if (data.email && data.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       ctx.addIssue({ code: 'custom', path: ['email'], message: 'E-mail inválido' })
     }
-    if (data.tem_contrato) {
+    if (data.tipo === 'convenio' && !data.convenio_id) {
+      ctx.addIssue({ code: 'custom', path: ['convenio_id'], message: 'Selecione o plano de saúde' })
+    }
+    if (data.tem_contrato && data.tipo === 'particular') {
       if (!data.contrato_tipo) {
         ctx.addIssue({ code: 'custom', path: ['contrato_tipo'], message: 'Selecione o tipo de cobrança' })
       }
@@ -105,6 +111,7 @@ export function NovoPacientePage() {
   const navigate = useNavigate()
   const { createPaciente } = usePacientes()
   const { modalidades } = useModalidades()
+  const { convenios } = useConvenios()
   const [serverError, setServerError] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotSemanalInput[]>([])
   const [semanas, setSemanas] = useState(8)
@@ -116,11 +123,12 @@ export function NovoPacientePage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { tem_contrato: false },
+    defaultValues: { tem_contrato: false, tipo: 'particular' },
   })
 
   const temContrato = watch('tem_contrato')
   const contratoTipo = watch('contrato_tipo')
+  const tipo = watch('tipo')
 
   const adicionarSlot = () =>
     setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', modalidade_id: '', is_pacote: false }])
@@ -143,7 +151,9 @@ export function NovoPacientePage() {
         telefone: data.telefone || undefined,
         email: data.email || undefined,
         data_nascimento: data.data_nascimento || undefined,
-        contrato: data.tem_contrato && data.contrato_tipo
+        tipo: data.tipo,
+        convenio_id: data.tipo === 'convenio' ? data.convenio_id : undefined,
+        contrato: data.tem_contrato && data.contrato_tipo && data.tipo === 'particular'
           ? {
               tipo: data.contrato_tipo as ContratoTipo,
               valor: Number(data.contrato_valor),
@@ -190,6 +200,33 @@ export function NovoPacientePage() {
             <input {...register('nome')} placeholder="Nome completo" className={inputClass} />
             <FieldError message={errors.nome?.message} />
           </div>
+
+          <div className="flex flex-col gap-1">
+            <FieldLabel required>Tipo de atendimento</FieldLabel>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="particular" {...register('tipo')} className="accent-primary" />
+                Particular
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="convenio" {...register('tipo')} className="accent-primary" />
+                Convênio
+              </label>
+            </div>
+          </div>
+
+          {tipo === 'convenio' && (
+            <div className="flex flex-col gap-1">
+              <FieldLabel required>Plano de saúde</FieldLabel>
+              <select {...register('convenio_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {convenios.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+              <FieldError message={errors.convenio_id?.message} />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <FieldLabel>WhatsApp</FieldLabel>
@@ -375,7 +412,13 @@ export function NovoPacientePage() {
             </div>
           )}
 
-          {!temContrato && (
+          {tipo === 'convenio' && !temContrato && (
+            <p className="text-sm text-muted">
+              Pacientes de convênio geralmente não precisam de contrato — o valor é definido pelo plano.
+            </p>
+          )}
+
+          {!temContrato && tipo === 'particular' && (
             <p className="text-sm text-muted">Você pode definir a forma de cobrança depois no perfil do paciente.</p>
           )}
         </div>
