@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Paciente, ContratoTipo } from '@/lib/types'
+import type { PacienteComConvenio, ContratoTipo } from '@/lib/types'
 
 export interface CreatePacienteInput {
   nome: string
   telefone?: string
   email?: string
   data_nascimento?: string
+  tipo?: 'particular' | 'convenio'
+  convenio_id?: string
   contrato?: {
     tipo: ContratoTipo
     valor: number
@@ -16,7 +18,7 @@ export interface CreatePacienteInput {
 }
 
 export function usePacientes() {
-  const [pacientes, setPacientes] = useState<Paciente[]>([])
+  const [pacientes, setPacientes] = useState<PacienteComConvenio[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,7 +26,7 @@ export function usePacientes() {
     setLoading(true)
     const { data, error } = await supabase
       .from('pacientes')
-      .select('*')
+      .select('*, convenios(nome, valor_sessao)')
       .eq('ativo', true)
       .order('nome')
 
@@ -32,7 +34,7 @@ export function usePacientes() {
       setError(error.message)
       setPacientes([])
     } else {
-      setPacientes(data ?? [])
+      setPacientes((data as PacienteComConvenio[]) ?? [])
     }
     setLoading(false)
   }
@@ -49,6 +51,8 @@ export function usePacientes() {
         telefone: input.telefone ?? null,
         email: input.email ?? null,
         data_nascimento: input.data_nascimento ?? null,
+        tipo: input.tipo ?? 'particular',
+        convenio_id: input.convenio_id ?? null,
       })
       .select('id')
       .single()
