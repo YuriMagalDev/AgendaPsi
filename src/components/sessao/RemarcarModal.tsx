@@ -47,7 +47,7 @@ export function RemarcarModal({ sessao, onClose, onConfirmar }: Props) {
               {nomePaciente} · Clique em um horário livre na agenda
             </p>
           </div>
-          <button onClick={onClose} className="text-muted hover:text-[#1C1C1C] transition-colors">
+          <button onClick={onClose} aria-label="Fechar" className="text-muted hover:text-[#1C1C1C] transition-colors">
             <X size={20} />
           </button>
         </div>
