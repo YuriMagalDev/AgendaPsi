@@ -16,7 +16,7 @@ export function useConfigPsicologo() {
       })
   }, [])
 
-  async function updateConfig(patch: Partial<Pick<ConfigPsicologo, 'nome' | 'horario_inicio' | 'horario_fim'>>): Promise<void> {
+  async function updateConfig(patch: Partial<Pick<ConfigPsicologo, 'nome' | 'horario_inicio' | 'horario_fim' | 'automacao_whatsapp_ativa'>>): Promise<void> {
     if (!config?.id) throw new Error('Config não carregada')
     const { data, error: err } = await supabase
       .from('config_psicologo')
