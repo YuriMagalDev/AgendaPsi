@@ -71,6 +71,9 @@ export function TopBar() {
                       >
                         {n.confirmado ? 'Confirmou a sessão' : 'Cancelou a sessão'}
                       </p>
+                      {n.remarcacao_solicitada && (
+                        <p className="text-xs font-medium text-[#9B7EC8] mt-0.5">Solicitou remarcação</p>
+                      )}
                       {n.resposta && (
                         <p className="text-xs text-muted mt-0.5 italic">"{n.resposta}"</p>
                       )}
