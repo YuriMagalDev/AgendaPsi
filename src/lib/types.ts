@@ -55,6 +55,7 @@ export interface Sessao {
   data_pagamento: string | null
   remarcada_para: string | null
   sessao_origem_id: string | null
+  duracao_minutos: number
   criado_em: string
 }
 

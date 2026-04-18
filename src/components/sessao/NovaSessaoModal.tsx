@@ -14,6 +14,7 @@ const schema = z.object({
   avulso_telefone: z.string().optional(),
   modalidade_id: z.string().min(1, 'Selecione a modalidade'),
   data_hora: z.string().min(1, 'Informe data e horário'),
+  duracao_minutos: z.string().default('50'),
   valor_cobrado: z.string().optional(),
 }).superRefine((d, ctx) => {
   if (d.tipo === 'paciente' && !d.paciente_id) {
@@ -73,6 +74,7 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
         modalidade_id: data.modalidade_id,
         data_hora: data.data_hora,
         status: 'agendada',
+        duracao_minutos: Number(data.duracao_minutos) || 50,
         valor_cobrado: data.valor_cobrado ? Number(data.valor_cobrado) : null,
         pago: false,
       })
@@ -143,10 +145,22 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
             {errors.modalidade_id && <span className="text-xs text-[#E07070]">{errors.modalidade_id.message}</span>}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#1C1C1C]">Data e horário</label>
-            <input type="datetime-local" {...register('data_hora')} className={inputClass} />
-            {errors.data_hora && <span className="text-xs text-[#E07070]">{errors.data_hora.message}</span>}
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Data e horário</label>
+              <input type="datetime-local" {...register('data_hora')} className={inputClass} />
+              {errors.data_hora && <span className="text-xs text-[#E07070]">{errors.data_hora.message}</span>}
+            </div>
+            <div className="flex flex-col gap-1 w-28">
+              <label className="text-sm font-medium text-[#1C1C1C]">Duração</label>
+              <select {...register('duracao_minutos')} className={inputClass}>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="50">50 min</option>
+                <option value="60">60 min</option>
+                <option value="90">90 min</option>
+              </select>
+            </div>
           </div>
 
           {(tipo === 'avulso' || isConvenio) && (

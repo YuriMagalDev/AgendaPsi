@@ -6,12 +6,25 @@ import { STATUS_CONFIG } from '@/lib/statusConfig'
 interface Props {
   sessao: SessaoView
   onClick?: () => void
+  compact?: boolean
 }
 
-export function SessaoCard({ sessao, onClick }: Props) {
+export function SessaoCard({ sessao, onClick, compact }: Props) {
   const cfg = STATUS_CONFIG[sessao.status]
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
   const horario = format(new Date(sessao.data_hora), 'HH:mm', { locale: ptBR })
+
+  if (compact) {
+    return (
+      <div
+        onClick={onClick}
+        className="bg-surface rounded border border-border px-1.5 py-0.5 cursor-pointer hover:shadow-sm transition-shadow overflow-hidden"
+        style={{ borderLeftWidth: 3, borderLeftColor: cfg.cor }}
+      >
+        <p className="text-[11px] font-medium text-[#1C1C1C] truncate leading-tight">{nomePaciente}</p>
+      </div>
+    )
+  }
 
   return (
     <div
