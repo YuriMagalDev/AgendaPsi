@@ -7,14 +7,14 @@ export function useConfigPsicologo() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    supabase.from('config_psicologo').select('*').limit(1)
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message)
-        else setConfig((data?.[0] as ConfigPsicologo) ?? null)
-        setLoading(false)
-      })
-  }, [])
+  async function fetchConfig() {
+    const { data, error: err } = await supabase.from('config_psicologo').select('*').limit(1)
+    if (err) setError(err.message)
+    else setConfig((data?.[0] as ConfigPsicologo) ?? null)
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchConfig() }, [])
 
   async function updateConfig(patch: Partial<Pick<ConfigPsicologo, 'nome' | 'horario_inicio' | 'horario_fim' | 'automacao_whatsapp_ativa'>>): Promise<void> {
     if (!config?.id) throw new Error('Config não carregada')
@@ -28,5 +28,5 @@ export function useConfigPsicologo() {
     setConfig(data as ConfigPsicologo)
   }
 
-  return { config, loading, error, updateConfig }
+  return { config, loading, error, updateConfig, refetch: fetchConfig }
 }

@@ -13,7 +13,7 @@ const inputClass = "h-9 px-3 rounded-lg border border-border bg-surface text-sm 
 export function ConfiguracoesPage() {
   const { convenios, loading: loadingConvenios, addConvenio, toggleAtivo: toggleConvenio, updateValor } = useConvenios()
   const { modalidades, loading: loadingModalidades, addModalidade, toggleAtivo: toggleModalidade } = useModalidades()
-  const { config, loading: loadingConfig, updateConfig } = useConfigPsicologo()
+  const { config, loading: loadingConfig, updateConfig, refetch: refetchConfig } = useConfigPsicologo()
 
   // Convênios state
   const [nomeConvenio, setNomeConvenio] = useState('')
@@ -86,11 +86,28 @@ export function ConfiguracoesPage() {
   async function iniciarConexao() {
     setConectando(true)
     try {
-      await supabase.functions.invoke('whatsapp-setup', { body: { action: 'create' } })
-      const { data } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
+      const { error: errCreate } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'create' } })
+      if (errCreate) {
+        const body = await (errCreate as any).context?.text?.()
+        console.error('whatsapp-setup create error:', errCreate, body)
+        toast.error(`Erro (create): ${body ?? errCreate.message}`)
+        return
+      }
+      // Refresh config so UI transitions to State B (QR view)
+      await refetchConfig()
+      const { data, error: errQr } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
+      if (errQr) {
+        const body = await (errQr as any).context?.text?.()
+        console.error('whatsapp-setup qr error:', errQr, body)
+        toast.error(`Erro (qr): ${body ?? errQr.message}`)
+        return
+      }
       setQrBase64(data?.qr ?? null)
       setPollingStatus(true)
       setPollingAttempts(0)
+    } catch (e: any) {
+      console.error('iniciarConexao error:', e)
+      toast.error(`Erro: ${e.message ?? JSON.stringify(e)}`)
     } finally {
       setConectando(false)
     }
