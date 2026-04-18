@@ -76,6 +76,8 @@ export interface Repasse {
   data_pagamento: string | null
 }
 
+export type TipoLembrete = '48h' | '24h' | '2h'
+
 export interface ConfirmacaoWhatsapp {
   id: string
   sessao_id: string
@@ -83,6 +85,8 @@ export interface ConfirmacaoWhatsapp {
   resposta: string | null
   confirmado: boolean | null
   lida: boolean
+  tipo_lembrete: TipoLembrete | null
+  remarcacao_solicitada: boolean
 }
 
 export type NotificacaoConfirmacao = ConfirmacaoWhatsapp & {
