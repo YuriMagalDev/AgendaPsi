@@ -125,4 +125,39 @@ describe('usePacientes', () => {
     expect(updateSpy).toHaveBeenCalledWith({ ativo: false })
     expect(eqSpy).toHaveBeenCalledWith('id', 'p-123')
   })
+
+  it('updatePaciente calls update on pacientes table', async () => {
+    const eqSpy = vi.fn().mockResolvedValue({ error: null })
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy })
+
+    vi.mocked(supabase.from).mockReturnValue(
+      buildChain({ update: updateSpy, order: vi.fn().mockResolvedValue({ data: [], error: null }) }) as any
+    )
+
+    const { result } = renderHook(() => usePacientes())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    await act(async () => {
+      await result.current.updatePaciente('p-1', { nome: 'Novo Nome' })
+    })
+
+    expect(updateSpy).toHaveBeenCalledWith({ nome: 'Novo Nome' })
+    expect(eqSpy).toHaveBeenCalledWith('id', 'p-1')
+  })
+
+  it('updatePaciente throws when Supabase returns error', async () => {
+    const eqSpy = vi.fn().mockResolvedValue({ error: { message: 'update failed' } })
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy })
+
+    vi.mocked(supabase.from).mockReturnValue(
+      buildChain({ update: updateSpy, order: vi.fn().mockResolvedValue({ data: [], error: null }) }) as any
+    )
+
+    const { result } = renderHook(() => usePacientes())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    await expect(
+      act(async () => { await result.current.updatePaciente('p-1', { nome: 'X' }) })
+    ).rejects.toBeDefined()
+  })
 })

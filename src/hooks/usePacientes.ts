@@ -17,6 +17,21 @@ export interface CreatePacienteInput {
   }
 }
 
+export interface UpdatePacienteInput {
+  nome?: string
+  telefone?: string | null
+  email?: string | null
+  data_nascimento?: string | null
+  tipo?: 'particular' | 'convenio'
+  convenio_id?: string | null
+  contrato?: {
+    tipo: ContratoTipo
+    valor: number
+    qtd_sessoes?: number | null
+    dia_vencimento?: number | null
+  } | null
+}
+
 export function usePacientes() {
   const [pacientes, setPacientes] = useState<PacienteComConvenio[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,6 +92,38 @@ export function usePacientes() {
     return paciente.id
   }
 
+  async function updatePaciente(id: string, input: UpdatePacienteInput): Promise<void> {
+    const patch: Record<string, unknown> = {}
+    if (input.nome !== undefined) patch.nome = input.nome
+    if (input.telefone !== undefined) patch.telefone = input.telefone
+    if (input.email !== undefined) patch.email = input.email
+    if (input.data_nascimento !== undefined) patch.data_nascimento = input.data_nascimento
+    if (input.tipo !== undefined) patch.tipo = input.tipo
+    if (input.convenio_id !== undefined) patch.convenio_id = input.convenio_id
+
+    if (Object.keys(patch).length > 0) {
+      const { error } = await supabase.from('pacientes').update(patch).eq('id', id)
+      if (error) throw error
+    }
+
+    if (input.contrato !== undefined) {
+      await supabase.from('contratos').update({ ativo: false }).eq('paciente_id', id)
+      if (input.contrato !== null) {
+        const { error } = await supabase.from('contratos').insert({
+          paciente_id: id,
+          tipo: input.contrato.tipo,
+          valor: input.contrato.valor,
+          qtd_sessoes: input.contrato.qtd_sessoes ?? null,
+          dia_vencimento: input.contrato.dia_vencimento ?? null,
+          ativo: true,
+        })
+        if (error) throw error
+      }
+    }
+
+    await fetchPacientes()
+  }
+
   async function arquivarPaciente(id: string): Promise<void> {
     const { error } = await supabase
       .from('pacientes')
@@ -87,5 +134,5 @@ export function usePacientes() {
     await fetchPacientes()
   }
 
-  return { pacientes, loading, error, createPaciente, arquivarPaciente }
+  return { pacientes, loading, error, createPaciente, updatePaciente, arquivarPaciente }
 }

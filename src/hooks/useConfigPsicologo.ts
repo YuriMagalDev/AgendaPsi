@@ -16,5 +16,17 @@ export function useConfigPsicologo() {
       })
   }, [])
 
-  return { config, loading, error }
+  async function updateConfig(patch: Partial<Pick<ConfigPsicologo, 'nome' | 'horario_inicio' | 'horario_fim'>>): Promise<void> {
+    if (!config?.id) throw new Error('Config não carregada')
+    const { data, error: err } = await supabase
+      .from('config_psicologo')
+      .update(patch)
+      .eq('id', config.id)
+      .select('*')
+      .single()
+    if (err) throw err
+    setConfig(data as ConfigPsicologo)
+  }
+
+  return { config, loading, error, updateConfig }
 }
