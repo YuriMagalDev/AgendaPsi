@@ -23,7 +23,7 @@ export function useKanban() {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('sessoes')
-      .select('*, modalidades(nome), pacientes(nome)')
+      .select('*, modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji), pacientes(nome)')
       .order('data_hora')
 
     if (err) {

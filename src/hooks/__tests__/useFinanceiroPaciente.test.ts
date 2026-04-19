@@ -10,12 +10,14 @@ const mockSessoes = [
   {
     id: 's1', paciente_id: 'p1', data_hora: '2026-04-07T10:00:00Z',
     status: 'concluida', valor_cobrado: 200, pago: true, forma_pagamento: 'pix',
-    modalidades: { nome: 'Presencial' },
+    modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-1',
+    modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Presencial', emoji: '🏥' },
   },
   {
     id: 's2', paciente_id: 'p1', data_hora: '2026-04-14T10:00:00Z',
     status: 'concluida', valor_cobrado: 200, pago: false, forma_pagamento: null,
-    modalidades: { nome: 'Presencial' },
+    modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-1',
+    modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Presencial', emoji: '🏥' },
   },
 ]
 

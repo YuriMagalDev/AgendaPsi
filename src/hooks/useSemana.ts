@@ -13,7 +13,7 @@ export function useSemana(weekStart: Date) {
     const fim = addDays(weekStart, 7)
     const { data, error: err } = await supabase
       .from('sessoes')
-      .select('*, modalidades(nome), pacientes(nome)')
+      .select('*, modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji), pacientes(nome)')
       .gte('data_hora', weekStart.toISOString())
       .lt('data_hora', fim.toISOString())
       .order('data_hora')

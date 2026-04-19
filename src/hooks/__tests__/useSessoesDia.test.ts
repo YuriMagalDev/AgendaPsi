@@ -11,10 +11,10 @@ import { supabase } from '@/lib/supabase'
 const mockSessoes = [
   {
     id: 's-1', paciente_id: 'p-1', avulso_nome: null, avulso_telefone: null,
-    modalidade_id: 'm-1', data_hora: '2026-04-16T10:00:00Z', status: 'agendada',
+    modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-1', data_hora: '2026-04-16T10:00:00Z', status: 'agendada',
     valor_cobrado: 150, pago: false, data_pagamento: null, remarcada_para: null,
     sessao_origem_id: null, criado_em: '2026-04-16T00:00:00Z',
-    modalidades: { nome: 'Presencial' }, pacientes: { nome: 'Ana Lima' },
+    modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Presencial', emoji: '🏥' }, pacientes: { nome: 'Ana Lima' },
   },
 ]
 

@@ -14,7 +14,7 @@ export function useSessoesDia(data: string) {
     const fim = `${data}T23:59:59`
     const { data: rows, error: err } = await supabase
       .from('sessoes')
-      .select('*, modalidades(nome), pacientes(nome)')
+      .select('*, modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji), pacientes(nome)')
       .gte('data_hora', inicio)
       .lt('data_hora', fim)
       .order('data_hora')

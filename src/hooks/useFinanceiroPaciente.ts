@@ -27,7 +27,7 @@ export function useFinanceiroPaciente(pacienteId: string, mes: Date) {
         .single(),
       supabase
         .from('sessoes')
-        .select('*, modalidades(nome)')
+        .select('*, modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji)')
         .eq('paciente_id', pacienteId)
         .gte('data_hora', inicio)
         .lte('data_hora', fim)

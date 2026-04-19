@@ -25,7 +25,7 @@ export function usePacienteDetalhe(id: string) {
           supabase.from('pacientes').select('*').eq('id', id).single(),
           supabase
             .from('sessoes')
-            .select('*, modalidades(nome)')
+            .select('*, modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji)')
             .eq('paciente_id', id)
             .order('data_hora', { ascending: false }),
           supabase
