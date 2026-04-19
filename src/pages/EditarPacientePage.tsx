@@ -7,6 +7,8 @@ import { ArrowLeft } from 'lucide-react'
 import { usePacienteDetalhe } from '@/hooks/usePacienteDetalhe'
 import { usePacientes } from '@/hooks/usePacientes'
 import { useConvenios } from '@/hooks/useConvenios'
+import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
+import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 
 const schema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório'),
@@ -15,6 +17,8 @@ const schema = z.object({
   data_nascimento: z.string().optional(),
   tipo: z.enum(['particular', 'convenio']).default('particular'),
   convenio_id: z.string().optional(),
+  modalidade_sessao_id: z.string().min(1, 'Selecione a modalidade de sessão'),
+  meio_atendimento_id: z.string().min(1, 'Selecione o meio de atendimento'),
   tem_contrato: z.boolean(),
   contrato_tipo: z.enum(['por_sessao', 'pacote', 'mensal']).optional(),
   contrato_valor: z.string().optional(),
@@ -44,10 +48,12 @@ export function EditarPacientePage() {
   const { paciente, contrato, loading } = usePacienteDetalhe(id!)
   const { updatePaciente } = usePacientes()
   const { convenios } = useConvenios()
+  const { modalidadesSessao } = useModalidadesSessao()
+  const { meiosAtendimento } = useMeiosAtendimento()
 
   const { register, handleSubmit, watch, reset, setError, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { tipo: 'particular', tem_contrato: false },
+    defaultValues: { tipo: 'particular', tem_contrato: false, modalidade_sessao_id: '', meio_atendimento_id: '' },
   })
 
   const tipo = watch('tipo')
@@ -63,6 +69,8 @@ export function EditarPacientePage() {
       data_nascimento: paciente.data_nascimento ?? '',
       tipo: paciente.tipo,
       convenio_id: paciente.convenio_id ?? '',
+      modalidade_sessao_id: paciente.modalidade_sessao_id,
+      meio_atendimento_id: paciente.meio_atendimento_id,
       tem_contrato: !!contrato,
       contrato_tipo: contrato?.tipo,
       contrato_valor: contrato ? String(contrato.valor) : '',
@@ -80,6 +88,8 @@ export function EditarPacientePage() {
         data_nascimento: data.data_nascimento || null,
         tipo: data.tipo,
         convenio_id: data.tipo === 'convenio' ? (data.convenio_id || null) : null,
+        modalidade_sessao_id: data.modalidade_sessao_id,
+        meio_atendimento_id: data.meio_atendimento_id,
         contrato: data.tem_contrato && data.tipo === 'particular' && data.contrato_tipo
           ? {
               tipo: data.contrato_tipo,
@@ -176,6 +186,29 @@ export function EditarPacientePage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-[#1C1C1C]">Data de nascimento</label>
             <input {...register('data_nascimento')} type="date" className={inputClass} />
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Modalidade de sessão</label>
+              <select {...register('modalidade_sessao_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {modalidadesSessao.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              {errors.modalidade_sessao_id && <span className="text-xs text-[#E07070]">{errors.modalidade_sessao_id.message}</span>}
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Meio de atendimento</label>
+              <select {...register('meio_atendimento_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {meiosAtendimento.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              {errors.meio_atendimento_id && <span className="text-xs text-[#E07070]">{errors.meio_atendimento_id.message}</span>}
+            </div>
           </div>
         </div>
 

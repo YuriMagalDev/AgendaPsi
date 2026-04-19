@@ -8,7 +8,8 @@ import { getDay, nextDay, setHours, setMinutes, startOfDay, addWeeks } from 'dat
 import type { Day } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { usePacientes } from '@/hooks/usePacientes'
-import { useModalidades } from '@/hooks/useModalidades'
+import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
+import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConvenios } from '@/hooks/useConvenios'
 import type { ContratoTipo, SessaoStatus, SlotSemanalInput } from '@/lib/types'
 
@@ -20,6 +21,8 @@ const schema = z
     data_nascimento: z.string().optional(),
     tipo: z.enum(['particular', 'convenio']).default('particular'),
     convenio_id: z.string().optional(),
+    modalidade_sessao_id: z.string().min(1, 'Selecione a modalidade de sessão'),
+    meio_atendimento_id: z.string().min(1, 'Selecione o meio de atendimento'),
     tem_contrato: z.boolean(),
     contrato_tipo: z.enum(['por_sessao', 'pacote', 'mensal']).optional(),
     contrato_valor: z.string().optional(),
@@ -78,7 +81,8 @@ function gerarSessoesParaSlot(pacienteId: string, slot: SlotSemanalInput, semana
       paciente_id: pacienteId,
       avulso_nome: null,
       avulso_telefone: null,
-      modalidade_id: slot.modalidade_id,
+      modalidade_sessao_id: slot.modalidade_sessao_id,
+      meio_atendimento_id: slot.meio_atendimento_id,
       data_hora: setMinutes(setHours(base, hh), mm).toISOString(),
       status: 'agendada' as SessaoStatus,
       valor_cobrado: null,
@@ -111,7 +115,8 @@ const selectClass = "h-9 px-2 rounded-lg border border-border bg-surface text-sm
 export function NovoPacientePage() {
   const navigate = useNavigate()
   const { createPaciente } = usePacientes()
-  const { modalidades } = useModalidades()
+  const { modalidadesSessao } = useModalidadesSessao()
+  const { meiosAtendimento } = useMeiosAtendimento()
   const { convenios } = useConvenios()
   const [serverError, setServerError] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotSemanalInput[]>([])
@@ -132,7 +137,7 @@ export function NovoPacientePage() {
   const tipo = watch('tipo')
 
   const adicionarSlot = () =>
-    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', modalidade_id: '', is_pacote: false }])
+    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', modalidade_sessao_id: '', meio_atendimento_id: '', is_pacote: false }])
   const removerSlot = (i: number) => setSlots(p => p.filter((_, j) => j !== i))
   const atualizarSlot = (i: number, campo: keyof SlotSemanalInput, val: unknown) =>
     setSlots(p => p.map((s, j) => j === i ? { ...s, [campo]: val } : s))
@@ -140,7 +145,7 @@ export function NovoPacientePage() {
   async function onSubmit(data: FormData) {
     setServerError(null)
 
-    const slotsInvalidos = slots.some(s => !s.modalidade_id || !s.horario || !s.nome.trim())
+    const slotsInvalidos = slots.some(s => !s.modalidade_sessao_id || !s.meio_atendimento_id || !s.horario || !s.nome.trim())
     if (slotsInvalidos) {
       setServerError('Preencha modalidade e horário em todos os horários semanais.')
       return
@@ -154,6 +159,8 @@ export function NovoPacientePage() {
         data_nascimento: data.data_nascimento || undefined,
         tipo: data.tipo,
         convenio_id: data.tipo === 'convenio' ? data.convenio_id : undefined,
+        modalidade_sessao_id: data.modalidade_sessao_id,
+        meio_atendimento_id: data.meio_atendimento_id,
         contrato: data.tem_contrato && data.contrato_tipo && data.tipo === 'particular'
           ? {
               tipo: data.contrato_tipo as ContratoTipo,
@@ -244,6 +251,29 @@ export function NovoPacientePage() {
             <FieldLabel>Data de nascimento</FieldLabel>
             <input {...register('data_nascimento')} type="date" className={inputClass} />
           </div>
+
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <FieldLabel required>Modalidade de sessão</FieldLabel>
+              <select {...register('modalidade_sessao_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {modalidadesSessao.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              <FieldError message={errors.modalidade_sessao_id?.message} />
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <FieldLabel required>Meio de atendimento</FieldLabel>
+              <select {...register('meio_atendimento_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {meiosAtendimento.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              <FieldError message={errors.meio_atendimento_id?.message} />
+            </div>
+          </div>
         </div>
 
         {/* Horários semanais */}
@@ -303,13 +333,23 @@ export function NovoPacientePage() {
                 />
 
                 <select
-                  value={slot.modalidade_id}
-                  onChange={e => atualizarSlot(i, 'modalidade_id', e.target.value)}
+                  value={slot.modalidade_sessao_id}
+                  onChange={e => atualizarSlot(i, 'modalidade_sessao_id', e.target.value)}
                   className={`${selectClass} flex-1 min-w-[120px]`}
                 >
                   <option value="">Modalidade...</option>
-                  {modalidades.map(m => (
-                    <option key={m.id} value={m.id}>{m.nome}</option>
+                  {modalidadesSessao.map(m => (
+                    <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                  ))}
+                </select>
+                <select
+                  value={slot.meio_atendimento_id}
+                  onChange={e => atualizarSlot(i, 'meio_atendimento_id', e.target.value)}
+                  className={`${selectClass} flex-1 min-w-[100px]`}
+                >
+                  <option value="">Meio...</option>
+                  {meiosAtendimento.map(m => (
+                    <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
                   ))}
                 </select>
 
