@@ -9,6 +9,8 @@ export interface CreatePacienteInput {
   data_nascimento?: string
   tipo?: 'particular' | 'convenio'
   convenio_id?: string
+  modalidade_sessao_id: string
+  meio_atendimento_id: string
   contrato?: {
     tipo: ContratoTipo
     valor: number
@@ -24,6 +26,8 @@ export interface UpdatePacienteInput {
   data_nascimento?: string | null
   tipo?: 'particular' | 'convenio'
   convenio_id?: string | null
+  modalidade_sessao_id?: string
+  meio_atendimento_id?: string
   contrato?: {
     tipo: ContratoTipo
     valor: number
@@ -41,7 +45,7 @@ export function usePacientes() {
     setLoading(true)
     const { data, error } = await supabase
       .from('pacientes')
-      .select('*, convenios(nome, valor_sessao)')
+      .select('*, convenios(nome, valor_sessao), modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji)')
       .eq('ativo', true)
       .order('nome')
 
@@ -68,6 +72,8 @@ export function usePacientes() {
         data_nascimento: input.data_nascimento ?? null,
         tipo: input.tipo ?? 'particular',
         convenio_id: input.convenio_id ?? null,
+        modalidade_sessao_id: input.modalidade_sessao_id,
+        meio_atendimento_id: input.meio_atendimento_id,
       })
       .select('id')
       .single()
@@ -100,6 +106,8 @@ export function usePacientes() {
     if (input.data_nascimento !== undefined) patch.data_nascimento = input.data_nascimento
     if (input.tipo !== undefined) patch.tipo = input.tipo
     if (input.convenio_id !== undefined) patch.convenio_id = input.convenio_id
+    if (input.modalidade_sessao_id !== undefined) patch.modalidade_sessao_id = input.modalidade_sessao_id
+    if (input.meio_atendimento_id !== undefined) patch.meio_atendimento_id = input.meio_atendimento_id
 
     if (Object.keys(patch).length > 0) {
       const { error } = await supabase.from('pacientes').update(patch).eq('id', id)
