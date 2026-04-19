@@ -5,14 +5,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { usePacientes } from '@/hooks/usePacientes'
-import { useModalidades } from '@/hooks/useModalidades'
+import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
+import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 
 const schema = z.object({
   tipo: z.enum(['paciente', 'avulso']),
   paciente_id: z.string().optional(),
   avulso_nome: z.string().optional(),
   avulso_telefone: z.string().optional(),
-  modalidade_id: z.string().min(1, 'Selecione a modalidade'),
+  modalidade_sessao_id: z.string().min(1, 'Selecione a modalidade de sessão'),
+  meio_atendimento_id: z.string().min(1, 'Selecione o meio de atendimento'),
   data_hora: z.string().min(1, 'Informe data e horário'),
   duracao_minutos: z.string().default('50'),
   valor_cobrado: z.string().optional(),
@@ -37,7 +39,8 @@ const inputClass = "w-full h-9 px-3 rounded-lg border border-border bg-surface t
 
 export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
   const { pacientes } = usePacientes()
-  const { modalidades } = useModalidades()
+  const { modalidadesSessao } = useModalidadesSessao()
+  const { meiosAtendimento } = useMeiosAtendimento()
   const [serverError, setServerError] = useState<string | null>(null)
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -64,6 +67,13 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
     }
   }, [pacienteId, isConvenio, convenioValor, tipo, setValue])
 
+  useEffect(() => {
+    if (pacienteSelecionado) {
+      setValue('modalidade_sessao_id', pacienteSelecionado.modalidade_sessao_id)
+      setValue('meio_atendimento_id', pacienteSelecionado.meio_atendimento_id)
+    }
+  }, [pacienteId, pacienteSelecionado, setValue])
+
   async function onSubmit(data: FormData) {
     setServerError(null)
     try {
@@ -71,7 +81,8 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
         paciente_id: data.tipo === 'paciente' ? data.paciente_id : null,
         avulso_nome: data.tipo === 'avulso' ? data.avulso_nome : null,
         avulso_telefone: data.tipo === 'avulso' ? (data.avulso_telefone || null) : null,
-        modalidade_id: data.modalidade_id,
+        modalidade_sessao_id: data.modalidade_sessao_id,
+        meio_atendimento_id: data.meio_atendimento_id,
         data_hora: data.data_hora,
         status: 'agendada',
         duracao_minutos: Number(data.duracao_minutos) || 50,
@@ -134,15 +145,27 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
             </>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#1C1C1C]">Modalidade</label>
-            <select {...register('modalidade_id')} className={inputClass}>
-              <option value="">Selecionar...</option>
-              {modalidades.map(m => (
-                <option key={m.id} value={m.id}>{m.nome}</option>
-              ))}
-            </select>
-            {errors.modalidade_id && <span className="text-xs text-[#E07070]">{errors.modalidade_id.message}</span>}
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Modalidade de sessão</label>
+              <select {...register('modalidade_sessao_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {modalidadesSessao.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              {errors.modalidade_sessao_id && <span className="text-xs text-[#E07070]">{errors.modalidade_sessao_id.message}</span>}
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-[#1C1C1C]">Meio de atendimento</label>
+              <select {...register('meio_atendimento_id')} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {meiosAtendimento.map(m => (
+                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
+                ))}
+              </select>
+              {errors.meio_atendimento_id && <span className="text-xs text-[#E07070]">{errors.meio_atendimento_id.message}</span>}
+            </div>
           </div>
 
           <div className="flex gap-3">
