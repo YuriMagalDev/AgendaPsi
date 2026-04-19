@@ -10,6 +10,20 @@ export type ContratoTipo = 'por_sessao' | 'pacote' | 'mensal'
 
 export type RepasseTipoValor = 'percentual' | 'fixo'
 
+export interface ModalidadeSessao {
+  id: string
+  nome: string
+  emoji: string
+  ativo: boolean
+}
+
+export interface MeioAtendimento {
+  id: string
+  nome: string
+  emoji: string
+  ativo: boolean
+}
+
 export interface Paciente {
   id: string
   nome: string
@@ -19,13 +33,9 @@ export interface Paciente {
   ativo: boolean
   tipo: 'particular' | 'convenio'
   convenio_id: string | null
+  modalidade_sessao_id: string
+  meio_atendimento_id: string
   criado_em: string
-}
-
-export interface Modalidade {
-  id: string
-  nome: string
-  ativo: boolean
 }
 
 export interface Contrato {
@@ -46,7 +56,8 @@ export interface Sessao {
   paciente_id: string | null
   avulso_nome: string | null
   avulso_telefone: string | null
-  modalidade_id: string
+  modalidade_sessao_id: string
+  meio_atendimento_id: string
   data_hora: string
   status: SessaoStatus
   valor_cobrado: number | null
@@ -111,11 +122,13 @@ export interface ConfigPsicologo {
 }
 
 export type SessaoComModalidade = Sessao & {
-  modalidades: { nome: string } | null
+  modalidades_sessao: { nome: string; emoji: string } | null
+  meios_atendimento:  { nome: string; emoji: string } | null
 }
 
 export type SessaoView = Sessao & {
-  modalidades: { nome: string } | null
+  modalidades_sessao: { nome: string; emoji: string } | null
+  meios_atendimento:  { nome: string; emoji: string } | null
   pacientes: { nome: string } | null
 }
 
@@ -123,9 +136,10 @@ export interface SlotSemanal {
   id: string
   paciente_id: string
   nome: string | null
-  dia_semana: number       // 0=Dom … 6=Sab
-  horario: string          // "HH:MM"
-  modalidade_id: string
+  dia_semana: number
+  horario: string
+  modalidade_sessao_id: string
+  meio_atendimento_id: string
   is_pacote: boolean
   ativo: boolean
   criado_em: string
@@ -135,7 +149,8 @@ export interface SlotSemanalInput {
   nome: string
   dia_semana: number
   horario: string
-  modalidade_id: string
+  modalidade_sessao_id: string
+  meio_atendimento_id: string
   is_pacote: boolean
 }
 
@@ -149,7 +164,7 @@ export interface Convenio {
 
 export interface Despesa {
   id: string
-  mes: string          // 'YYYY-MM-DD' — first day of the month
+  mes: string
   descricao: string
   valor: number
   criado_em: string
@@ -157,4 +172,6 @@ export interface Despesa {
 
 export type PacienteComConvenio = Paciente & {
   convenios: { nome: string; valor_sessao: number | null } | null
+  modalidades_sessao?: { nome: string; emoji: string } | null
+  meios_atendimento?:  { nome: string; emoji: string } | null
 }
