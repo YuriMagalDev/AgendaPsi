@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { StepDados, type StepDadosData } from './onboarding/StepDados'
-import { StepModalidades } from './onboarding/StepModalidades'
+import { StepAtendimento } from './onboarding/StepAtendimento'
 import { StepConvenios, type ConvenioInput } from './onboarding/StepConvenios'
 import { StepWhatsapp } from './onboarding/StepWhatsapp'
 
@@ -13,7 +13,6 @@ export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [dadosStep1, setDadosStep1] = useState<StepDadosData | null>(null)
-  const [modalidades, setModalidades] = useState<string[]>([])
   const [convenios, setConvenios] = useState<ConvenioInput[]>([])
   const [erroFinal, setErroFinal] = useState<string | null>(null)
 
@@ -32,11 +31,6 @@ export function OnboardingPage() {
     if (error) {
       setErroFinal('Erro ao salvar configurações. Tente novamente.')
       return
-    }
-
-    const extras = modalidades.filter(m => !['Presencial', 'Online'].includes(m))
-    if (extras.length > 0) {
-      await supabase.from('modalidades').insert(extras.map(nome => ({ nome })))
     }
 
     if (convenios.length > 0) {
@@ -76,8 +70,8 @@ export function OnboardingPage() {
             <StepDados onNext={data => { setDadosStep1(data); setStep(2) }} />
           )}
           {step === 2 && (
-            <StepModalidades
-              onNext={m => { setModalidades(m); setStep(3) }}
+            <StepAtendimento
+              onNext={() => setStep(3)}
               onBack={() => setStep(1)}
             />
           )}

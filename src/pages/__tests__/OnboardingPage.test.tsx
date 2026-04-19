@@ -4,13 +4,41 @@ import { MemoryRouter } from 'react-router-dom'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 
 const mockInsert = vi.fn().mockResolvedValue({ error: null })
+const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
 const mockNavigate = vi.fn()
+
+const mockModalidades = [
+  { id: 'mod-1', nome: 'Individual', emoji: '👤', ativo: true },
+  { id: 'mod-2', nome: 'Casal', emoji: '👥', ativo: true },
+]
+const mockMeios = [
+  { id: 'meio-1', nome: 'Online', emoji: '💻', ativo: true },
+  { id: 'meio-2', nome: 'Presencial', emoji: '🏥', ativo: true },
+]
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: mockInsert,
-    })),
+    from: vi.fn((table: string) => {
+      if (table === 'modalidades_sessao') {
+        return {
+          select: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockModalidades, error: null }),
+          }),
+          update: mockUpdate,
+          insert: mockInsert,
+        }
+      }
+      if (table === 'meios_atendimento') {
+        return {
+          select: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockMeios, error: null }),
+          }),
+          update: mockUpdate,
+          insert: mockInsert,
+        }
+      }
+      return { insert: mockInsert, update: mockUpdate }
+    }),
   },
 }))
 
@@ -22,6 +50,7 @@ vi.mock('react-router-dom', async () => {
 describe('OnboardingPage', () => {
   beforeEach(() => {
     mockInsert.mockClear()
+    mockUpdate.mockClear()
     mockNavigate.mockClear()
   })
 
@@ -37,7 +66,7 @@ describe('OnboardingPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /próximo/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /modalidades/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /tipos de atendimento/i })).toBeInTheDocument()
     })
   })
 
@@ -55,10 +84,13 @@ describe('OnboardingPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /próximo/i })[0])
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /modalidades/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /tipos de atendimento/i })).toBeInTheDocument()
     })
 
-    // Fill step 2 - just click próximo since modalidades has defaults
+    // Fill step 2 - checkboxes default to all selected; click próximo
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /próximo/i })).not.toBeDisabled()
+    })
     fireEvent.click(screen.getByRole('button', { name: /próximo/i }))
 
     await waitFor(() => {
