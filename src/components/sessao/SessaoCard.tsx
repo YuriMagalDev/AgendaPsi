@@ -35,9 +35,14 @@ export function SessaoCard({ sessao, onClick, compact }: Props) {
       <p className="text-sm font-medium text-[#1C1C1C] leading-tight">{nomePaciente}</p>
       <div className="flex items-center gap-2 mt-1">
         <span className="text-xs text-muted">{horario}</span>
-        {sessao.modalidades?.nome && (
-          <span className="text-xs text-muted">· {sessao.modalidades.nome}</span>
-        )}
+        <span className="inline-flex gap-1">
+          {sessao.modalidades_sessao && (
+            <span title={sessao.modalidades_sessao.nome}>{sessao.modalidades_sessao.emoji}</span>
+          )}
+          {sessao.meios_atendimento && (
+            <span title={sessao.meios_atendimento.nome}>{sessao.meios_atendimento.emoji}</span>
+          )}
+        </span>
         <span className="ml-auto flex items-center gap-1">
           {sessao.valor_cobrado != null && (
             <span className="text-xs font-mono text-muted">
