@@ -18,8 +18,8 @@ vi.mock('@/lib/supabase', () => ({
 import { supabase } from '@/lib/supabase'
 
 const mockSessoes = [
-  { id: 's-1', status: 'agendada', paciente_id: 'p-1', avulso_nome: null, avulso_telefone: null, modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-1', data_hora: '2026-04-16T10:00:00Z', valor_cobrado: 150, pago: false, data_pagamento: null, remarcada_para: null, sessao_origem_id: null, criado_em: '2026-04-01T00:00:00Z', modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Presencial', emoji: '🏥' }, pacientes: { nome: 'Ana Lima' } },
-  { id: 's-2', status: 'confirmada', paciente_id: 'p-2', avulso_nome: null, avulso_telefone: null, modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-2', data_hora: '2026-04-16T14:00:00Z', valor_cobrado: 150, pago: false, data_pagamento: null, remarcada_para: null, sessao_origem_id: null, criado_em: '2026-04-01T00:00:00Z', modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Online', emoji: '💻' }, pacientes: { nome: 'Bia Souza' } },
+  { id: 's-1', status: 'agendada', paciente_id: 'p-1', avulso_nome: null, avulso_telefone: null, modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-1', data_hora: '2026-04-16T10:00:00Z', valor_cobrado: 150, pago: false, data_pagamento: null, sessao_origem_id: null, criado_em: '2026-04-01T00:00:00Z', modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Presencial', emoji: '🏥' }, pacientes: { nome: 'Ana Lima' } },
+  { id: 's-2', status: 'confirmada', paciente_id: 'p-2', avulso_nome: null, avulso_telefone: null, modalidade_sessao_id: 'ms-1', meio_atendimento_id: 'ma-2', data_hora: '2026-04-16T14:00:00Z', valor_cobrado: 150, pago: false, data_pagamento: null, sessao_origem_id: null, criado_em: '2026-04-01T00:00:00Z', modalidades_sessao: { nome: 'Individual', emoji: '👤' }, meios_atendimento: { nome: 'Online', emoji: '💻' }, pacientes: { nome: 'Bia Souza' } },
 ]
 
 function buildChain(overrides: Record<string, any> = {}) {
