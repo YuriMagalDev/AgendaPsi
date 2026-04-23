@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Paciente, Contrato, SessaoComModalidade } from '@/lib/types'
+import type { Paciente, Contrato, SessaoView } from '@/lib/types'
 
 interface Stats {
   total: number
@@ -11,7 +11,7 @@ interface Stats {
 
 export function usePacienteDetalhe(id: string) {
   const [paciente, setPaciente] = useState<Paciente | null>(null)
-  const [sessoes, setSessoes] = useState<SessaoComModalidade[]>([])
+  const [sessoes, setSessoes] = useState<SessaoView[]>([])
   const [contrato, setContrato] = useState<Contrato | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +51,7 @@ export function usePacienteDetalhe(id: string) {
 
         setError(null)
         setPaciente(pacienteRes.data)
-        setSessoes((sessoesRes.data ?? []) as SessaoComModalidade[])
+        setSessoes((sessoesRes.data ?? []) as SessaoView[])
         setContrato(contratoRes.data)
       } finally {
         setLoading(false)

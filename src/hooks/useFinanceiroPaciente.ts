@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase'
-import type { PacienteComConvenio, SessaoComModalidade } from '@/lib/types'
+import type { PacienteComConvenio, SessaoView } from '@/lib/types'
 
 export function useFinanceiroPaciente(pacienteId: string, mes: Date) {
   const [paciente, setPaciente] = useState<PacienteComConvenio | null>(null)
-  const [sessoesMes, setSessoesMes] = useState<SessaoComModalidade[]>([])
+  const [sessoesMes, setSessoesMes] = useState<SessaoView[]>([])
   const [totalHistorico, setTotalHistorico] = useState(0)
   const [totalPendente, setTotalPendente] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -42,7 +42,7 @@ export function useFinanceiroPaciente(pacienteId: string, mes: Date) {
         setError((pacErr ?? mesErr)!.message)
       } else {
         setPaciente(pac as PacienteComConvenio)
-        setSessoesMes((mes_ ?? []) as SessaoComModalidade[])
+        setSessoesMes((mes_ ?? []) as SessaoView[])
         const hist = (all ?? [])
           .filter((s: any) => s.status === 'concluida' && s.pago)
           .reduce((sum: number, s: any) => sum + (s.valor_cobrado ?? 0), 0)
