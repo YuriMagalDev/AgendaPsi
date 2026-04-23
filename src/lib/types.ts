@@ -64,7 +64,6 @@ export interface Sessao {
   pago: boolean
   forma_pagamento: string | null
   data_pagamento: string | null
-  remarcada_para: string | null
   sessao_origem_id: string | null
   duracao_minutos: number
   criado_em: string
@@ -82,6 +81,15 @@ export interface Repasse {
   id: string
   regra_repasse_id: string
   sessao_id: string
+  valor_calculado: number
+  pago: boolean
+  data_pagamento: string | null
+}
+
+export interface RepasseMensal {
+  id: string
+  regra_repasse_id: string
+  mes: string           // ISO date, always first of month (yyyy-MM-01)
   valor_calculado: number
   pago: boolean
   data_pagamento: string | null
@@ -119,11 +127,7 @@ export interface ConfigPsicologo {
   evolution_instance_name: string | null
   evolution_token: string | null
   whatsapp_conectado: boolean
-}
-
-export type SessaoComModalidade = Sessao & {
-  modalidades_sessao: { nome: string; emoji: string } | null
-  meios_atendimento:  { nome: string; emoji: string } | null
+  user_id: string | null
 }
 
 export type SessaoView = Sessao & {
@@ -142,6 +146,7 @@ export interface SlotSemanal {
   meio_atendimento_id: string
   is_pacote: boolean
   ativo: boolean
+  data_fim: string | null
   criado_em: string
 }
 
