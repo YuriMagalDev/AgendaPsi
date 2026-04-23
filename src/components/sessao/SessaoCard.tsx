@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { SessaoView } from '@/lib/types'
 import { STATUS_CONFIG } from '@/lib/statusConfig'
+import { EmojiTooltip } from '@/components/ui/emoji-tooltip'
 
 interface Props {
   sessao: SessaoView
@@ -37,10 +38,14 @@ export function SessaoCard({ sessao, onClick, compact }: Props) {
         <span className="text-xs text-muted">{horario}</span>
         <span className="inline-flex gap-1">
           {sessao.modalidades_sessao && (
-            <span title={sessao.modalidades_sessao.nome}>{sessao.modalidades_sessao.emoji}</span>
+            <EmojiTooltip label={sessao.modalidades_sessao.nome}>
+              {sessao.modalidades_sessao.emoji}
+            </EmojiTooltip>
           )}
           {sessao.meios_atendimento && (
-            <span title={sessao.meios_atendimento.nome}>{sessao.meios_atendimento.emoji}</span>
+            <EmojiTooltip label={sessao.meios_atendimento.nome}>
+              {sessao.meios_atendimento.emoji}
+            </EmojiTooltip>
           )}
         </span>
         <span className="ml-auto flex items-center gap-1">
