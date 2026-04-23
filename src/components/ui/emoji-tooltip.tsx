@@ -1,14 +1,15 @@
+import type { ReactNode } from 'react'
 import { Tooltip } from '@base-ui/react'
 
 interface Props {
   label: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function EmojiTooltip({ label, children }: Props) {
   return (
     <Tooltip.Root delay={0}>
-      <Tooltip.Trigger render={<span tabIndex={0} className="inline-flex items-center outline-none" />}>
+      <Tooltip.Trigger render={<span tabIndex={0} className="inline-flex items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D6A6A]" />}>
         {children}
       </Tooltip.Trigger>
       <Tooltip.Portal>

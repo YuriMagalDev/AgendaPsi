@@ -25,4 +25,15 @@ describe('EmojiTooltip', () => {
     await user.unhover(trigger)
     await waitFor(() => expect(screen.queryByText('Online')).not.toBeInTheDocument())
   })
+
+  it('shows label on keyboard focus', async () => {
+    const user = userEvent.setup()
+    render(
+      <div>
+        <EmojiTooltip label="Online">🖥️</EmojiTooltip>
+      </div>
+    )
+    await user.tab()
+    expect(await screen.findByText('Online')).toBeInTheDocument()
+  })
 })
