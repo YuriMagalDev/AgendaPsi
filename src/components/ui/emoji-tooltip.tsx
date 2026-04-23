@@ -13,8 +13,8 @@ export function EmojiTooltip({ label, children }: Props) {
         {children}
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Positioner side="top" sideOffset={6}>
-          <Tooltip.Popup className="bg-white border border-[#E4E0DA] shadow-sm rounded-lg px-2 py-1 text-[11px] text-[#1C1C1C] z-50 pointer-events-none">
+        <Tooltip.Positioner side="top" sideOffset={6} style={{ zIndex: 9999 }}>
+          <Tooltip.Popup className="bg-white border border-[#E4E0DA] shadow-sm rounded-lg px-2 py-1 text-[11px] text-[#1C1C1C] pointer-events-none">
             {label}
           </Tooltip.Popup>
         </Tooltip.Positioner>
