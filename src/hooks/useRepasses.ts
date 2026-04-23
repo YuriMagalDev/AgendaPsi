@@ -21,7 +21,7 @@ export function useRepasses(mes: Date, totalRecebido: number) {
     setLoading(true)
     const [{ data: regras }, { data: repasses }] = await Promise.all([
       supabase.from('regras_repasse').select('*').eq('ativo', true).order('nome'),
-      supabase.from('repasses').select('*').eq('mes', mesStr),
+      supabase.from('repasses_mensais').select('*').eq('mes', mesStr),
     ])
 
     const result: RepasseItem[] = (regras ?? []).map((r: any) => {
@@ -45,10 +45,9 @@ export function useRepasses(mes: Date, totalRecebido: number) {
   useEffect(() => { fetchRepasses() }, [mes.getFullYear(), mes.getMonth(), totalRecebido])
 
   async function marcarComoPago(regraId: string, valorCalculado: number) {
-    await supabase.from('repasses').upsert({
+    await supabase.from('repasses_mensais').upsert({
       regra_repasse_id: regraId,
       mes: mesStr,
-      sessao_id: null,
       valor_calculado: valorCalculado,
       pago: true,
       data_pagamento: format(new Date(), 'yyyy-MM-dd'),
