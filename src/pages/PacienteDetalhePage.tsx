@@ -174,8 +174,12 @@ export function PacienteDetalhePage() {
                       >
                         {cfg.label}
                       </span>
-                      {s.modalidades?.nome && (
-                        <span className="text-xs text-muted">{s.modalidades.nome}</span>
+                      {(s.modalidades_sessao || s.meios_atendimento) && (
+                        <span className="text-xs text-muted">
+                          {s.modalidades_sessao && `${s.modalidades_sessao.emoji} ${s.modalidades_sessao.nome}`}
+                          {s.modalidades_sessao && s.meios_atendimento && ' · '}
+                          {s.meios_atendimento && `${s.meios_atendimento.emoji} ${s.meios_atendimento.nome}`}
+                        </span>
                       )}
                     </div>
                     <p className="text-sm text-[#1C1C1C]">

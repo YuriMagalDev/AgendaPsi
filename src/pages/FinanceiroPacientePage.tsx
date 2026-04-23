@@ -101,7 +101,13 @@ export function FinanceiroPacientePage() {
                       <p className="text-sm font-medium text-[#1C1C1C]">
                         {format(new Date(s.data_hora), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
                       </p>
-                      <p className="text-xs text-muted">{s.modalidades?.nome} · {cfg.label}</p>
+                      <p className="text-xs text-muted">
+                        {s.modalidades_sessao && `${s.modalidades_sessao.emoji} ${s.modalidades_sessao.nome}`}
+                        {s.modalidades_sessao && s.meios_atendimento && ' · '}
+                        {s.meios_atendimento && `${s.meios_atendimento.emoji} ${s.meios_atendimento.nome}`}
+                        {(s.modalidades_sessao || s.meios_atendimento) && ' · '}
+                        {cfg.label}
+                      </p>
                     </div>
                     <div className="text-right shrink-0">
                       {s.valor_cobrado != null && (

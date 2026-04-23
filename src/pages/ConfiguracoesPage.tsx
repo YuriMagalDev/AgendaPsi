@@ -3,7 +3,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useConvenios } from '@/hooks/useConvenios'
-import { useModalidades } from '@/hooks/useModalidades'
+import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
+import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2 } from 'lucide-react'
@@ -12,7 +13,8 @@ const inputClass = "h-9 px-3 rounded-lg border border-border bg-surface text-sm 
 
 export function ConfiguracoesPage() {
   const { convenios, loading: loadingConvenios, addConvenio, toggleAtivo: toggleConvenio, updateValor } = useConvenios()
-  const { modalidades, loading: loadingModalidades, addModalidade, toggleAtivo: toggleModalidade } = useModalidades()
+  const { modalidadesSessao, loading: loadingModalidadesSessao, addModalidadeSessao, toggleAtivo: toggleModalidadeSessao } = useModalidadesSessao()
+  const { meiosAtendimento, loading: loadingMeiosAtendimento, addMeioAtendimento, toggleAtivo: toggleMeioAtendimento } = useMeiosAtendimento()
   const { config, loading: loadingConfig, updateConfig, refetch: refetchConfig } = useConfigPsicologo()
 
   // Convênios state
@@ -20,8 +22,13 @@ export function ConfiguracoesPage() {
   const [valorConvenio, setValorConvenio] = useState('')
   const [editandoValor, setEditandoValor] = useState<Record<string, string>>({})
 
-  // Modalidades state
-  const [nomeModalidade, setNomeModalidade] = useState('')
+  // Modalidades de Sessão state
+  const [nomeModalidadeSessao, setNomeModalidadeSessao] = useState('')
+  const [emojiModalidadeSessao, setEmojiModalidadeSessao] = useState('')
+
+  // Meios de Atendimento state
+  const [nomeMeioAtendimento, setNomeMeioAtendimento] = useState('')
+  const [emojiMeioAtendimento, setEmojiMeioAtendimento] = useState('')
 
   // Config state
   const [configForm, setConfigForm] = useState({ nome: '', horario_inicio: '', horario_fim: '' })
@@ -61,10 +68,18 @@ export function ConfiguracoesPage() {
     }
   }
 
-  function handleAddModalidade() {
-    if (!nomeModalidade.trim()) return
-    addModalidade(nomeModalidade.trim())
-    setNomeModalidade('')
+  function handleAddModalidadeSessao() {
+    if (!nomeModalidadeSessao.trim() || !emojiModalidadeSessao.trim()) return
+    addModalidadeSessao(nomeModalidadeSessao.trim(), emojiModalidadeSessao.trim())
+    setNomeModalidadeSessao('')
+    setEmojiModalidadeSessao('')
+  }
+
+  function handleAddMeioAtendimento() {
+    if (!nomeMeioAtendimento.trim() || !emojiMeioAtendimento.trim()) return
+    addMeioAtendimento(nomeMeioAtendimento.trim(), emojiMeioAtendimento.trim())
+    setNomeMeioAtendimento('')
+    setEmojiMeioAtendimento('')
   }
 
   async function carregarSessoesParaTeste() {
@@ -114,12 +129,27 @@ export function ConfiguracoesPage() {
   }
 
   async function verificarConexao() {
-    const { data } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'status' } })
-    if (data?.connected) {
-      window.location.reload()
-    } else {
-      toast.error('Ainda não conectado. Escaneie o QR Code.')
+    const { data, error } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'status' } })
+    console.log('[verificarConexao]', data, error)
+    if (error) {
+      const body = await (error as any).context?.text?.()
+      toast.error(`Erro: ${body ?? error.message}`, { duration: 10000 })
+      return
     }
+    if (data?.connected) {
+      await refetchConfig()
+      toast.success('Conectado!')
+      return
+    }
+    toast.error(`Estado atual: ${data?.state ?? 'desconhecido'}. Aguarde alguns segundos após escanear e tente novamente.`, { duration: 8000 })
+  }
+
+  async function reconectar() {
+    if (!confirm('A sessão do WhatsApp caiu. Reconectar vai pedir um novo QR Code. Continuar?')) return
+    if (!config?.id) return
+    await supabase.from('config_psicologo').update({ whatsapp_conectado: false }).eq('id', config.id)
+    await refetchConfig()
+    setQrBase64(null)
   }
 
   async function triggerTest(tipo: '48h' | '24h' | '2h') {
@@ -127,11 +157,19 @@ export function ConfiguracoesPage() {
     setTestando(tipo)
     try {
       const { data, error } = await supabase.functions.invoke('send-lembrete', {
-        body: { sessao_id: sessaoTesteId, tipo },
+        body: { sessao_id: sessaoTesteId, tipo, test: true },
       })
-      if (error) throw error
-      if (data?.skipped) toast.success(`Lembrete ${tipo} já foi enviado anteriormente`)
-      else toast.success(`Lembrete ${tipo} enviado com sucesso!`)
+      console.log('[teste WhatsApp] data:', data, 'error:', error)
+      if (error) {
+        const body = await (error as any).context?.text?.()
+        toast.error(`Erro: ${body ?? error.message}`, { duration: 10000 })
+        return
+      }
+      if (data?.ok) {
+        toast.success(`Teste ${tipo} enviado para ${data.phoneNormalized}`, { duration: 8000 })
+      } else {
+        toast.error(`Falha: ${data?.error ?? 'desconhecida'} (phone=${data?.phoneNormalized ?? '?'}, status=${data?.sendStatus ?? data?.connectionStateStatus ?? '?'})`, { duration: 12000 })
+      }
     } catch (e: any) {
       toast.error(`Erro: ${e.message}`)
     } finally {
@@ -144,16 +182,17 @@ export function ConfiguracoesPage() {
     if (!pollingStatus) return
     const interval = setInterval(async () => {
       const { data } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'status' } })
+      console.log('[polling]', data)
       if (data?.connected) {
         setPollingStatus(false)
-        window.location.reload()
+        await refetchConfig()
         return
       }
       setPollingAttempts(a => {
-        if (a + 1 >= 12) setPollingStatus(false)
+        if (a + 1 >= 60) setPollingStatus(false)  // 60 * 3s = 3 minutos
         return a + 1
       })
-    }, 5000)
+    }, 3000)
     return () => clearInterval(interval)
   }, [pollingStatus])
 
@@ -297,25 +336,26 @@ export function ConfiguracoesPage() {
         )}
       </div>
 
-      {/* Modalidades */}
+      {/* Modalidades de Sessão */}
       <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
-        <p className="text-xs font-semibold text-muted uppercase tracking-wide">Modalidades</p>
+        <p className="text-xs font-semibold text-muted uppercase tracking-wide">Modalidades de Sessão</p>
 
-        {loadingModalidades ? (
+        {loadingModalidadesSessao ? (
           <div className="flex justify-center py-4">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
-            {modalidades.length > 0 && (
+            {modalidadesSessao.length > 0 && (
               <div className="flex flex-col gap-2">
-                {modalidades.map(m => (
+                {modalidadesSessao.map(m => (
                   <div key={m.id} className="flex items-center gap-3">
+                    <span className="text-lg w-6 text-center">{m.emoji}</span>
                     <span className="flex-1 text-sm text-[#1C1C1C]">{m.nome}</span>
                     <button
-                      onClick={() => toggleModalidade(m.id, false)}
+                      onClick={() => toggleModalidadeSessao(m.id, false)}
                       className="text-muted hover:text-[#E07070] transition-colors"
-                      title="Desativar modalidade"
+                      title="Desativar"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -324,21 +364,87 @@ export function ConfiguracoesPage() {
               </div>
             )}
 
-            {modalidades.length === 0 && (
-              <p className="text-sm text-muted">Nenhuma modalidade cadastrada.</p>
+            {modalidadesSessao.length === 0 && (
+              <p className="text-sm text-muted">Nenhuma modalidade de sessão ativa.</p>
             )}
 
             <div className="flex gap-2 pt-1 border-t border-border">
               <input
+                placeholder="Emoji"
+                value={emojiModalidadeSessao}
+                onChange={e => setEmojiModalidadeSessao(e.target.value)}
+                className={`${inputClass} w-16 text-center`}
+                maxLength={4}
+              />
+              <input
                 placeholder="Nome da modalidade"
-                value={nomeModalidade}
-                onChange={e => setNomeModalidade(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddModalidade())}
+                value={nomeModalidadeSessao}
+                onChange={e => setNomeModalidadeSessao(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddModalidadeSessao())}
                 className={`${inputClass} flex-1`}
               />
               <button
-                onClick={handleAddModalidade}
-                disabled={!nomeModalidade.trim()}
+                onClick={handleAddModalidadeSessao}
+                disabled={!nomeModalidadeSessao.trim() || !emojiModalidadeSessao.trim()}
+                className="h-9 px-3 rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary/90 transition-colors"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Meios de Atendimento */}
+      <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
+        <p className="text-xs font-semibold text-muted uppercase tracking-wide">Meios de Atendimento</p>
+
+        {loadingMeiosAtendimento ? (
+          <div className="flex justify-center py-4">
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            {meiosAtendimento.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {meiosAtendimento.map(m => (
+                  <div key={m.id} className="flex items-center gap-3">
+                    <span className="text-lg w-6 text-center">{m.emoji}</span>
+                    <span className="flex-1 text-sm text-[#1C1C1C]">{m.nome}</span>
+                    <button
+                      onClick={() => toggleMeioAtendimento(m.id, false)}
+                      className="text-muted hover:text-[#E07070] transition-colors"
+                      title="Desativar"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {meiosAtendimento.length === 0 && (
+              <p className="text-sm text-muted">Nenhum meio de atendimento ativo.</p>
+            )}
+
+            <div className="flex gap-2 pt-1 border-t border-border">
+              <input
+                placeholder="Emoji"
+                value={emojiMeioAtendimento}
+                onChange={e => setEmojiMeioAtendimento(e.target.value)}
+                className={`${inputClass} w-16 text-center`}
+                maxLength={4}
+              />
+              <input
+                placeholder="Nome do meio"
+                value={nomeMeioAtendimento}
+                onChange={e => setNomeMeioAtendimento(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddMeioAtendimento())}
+                className={`${inputClass} flex-1`}
+              />
+              <button
+                onClick={handleAddMeioAtendimento}
+                disabled={!nomeMeioAtendimento.trim() || !emojiMeioAtendimento.trim()}
                 className="h-9 px-3 rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary/90 transition-colors"
               >
                 <Plus size={16} />
@@ -380,8 +486,10 @@ export function ConfiguracoesPage() {
             )}
             {!qrBase64 && (
               <button onClick={async () => {
-                const { data } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
-                setQrBase64(data?.qr ?? null)
+                const { data, error } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
+                console.log('QR response:', data, error)
+                if (data?.qr) setQrBase64(data.qr)
+                else toast.error(`QR não disponível. Resposta: ${JSON.stringify(data?._raw ?? error)}`)
               }} className="h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors">
                 Mostrar QR Code
               </button>
@@ -402,6 +510,9 @@ export function ConfiguracoesPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#4CAF82]" />
                 <span className="text-sm font-medium text-[#4CAF82]">Conectado</span>
+                <button onClick={reconectar} className="ml-2 text-xs text-muted underline hover:text-[#1C1C1C]">
+                  Reconectar
+                </button>
               </div>
               {/* Toggle */}
               <label className="flex items-center gap-2 cursor-pointer">
