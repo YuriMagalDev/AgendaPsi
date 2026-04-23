@@ -3,6 +3,7 @@ import { addDays, format, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { STATUS_CONFIG } from '@/lib/statusConfig'
 import type { SessaoView } from '@/lib/types'
+import { EmojiTooltip } from '@/components/ui/emoji-tooltip'
 
 const PIXELS_POR_HORA = 80
 
@@ -134,6 +135,20 @@ export function SemanaGrid({
                     </p>
                     {height > 32 && (
                       <p className="text-[10px] text-muted px-1 leading-none">{horario}</p>
+                    )}
+                    {height > 30 && (s.modalidades_sessao || s.meios_atendimento) && (
+                      <div className="flex gap-0.5 px-1 leading-none mt-0.5">
+                        {s.modalidades_sessao && (
+                          <EmojiTooltip label={s.modalidades_sessao.nome}>
+                            <span className="text-[10px]">{s.modalidades_sessao.emoji}</span>
+                          </EmojiTooltip>
+                        )}
+                        {s.meios_atendimento && (
+                          <EmojiTooltip label={s.meios_atendimento.nome}>
+                            <span className="text-[10px]">{s.meios_atendimento.emoji}</span>
+                          </EmojiTooltip>
+                        )}
+                      </div>
                     )}
                   </div>
                 )
