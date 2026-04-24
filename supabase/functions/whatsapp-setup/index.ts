@@ -9,6 +9,7 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json',
 }
 
 serve(async (req) => {
@@ -64,7 +65,15 @@ serve(async (req) => {
       { headers: { 'apikey': EVOLUTION_API_KEY } }
     )
     const data = await resp.json()
-    return new Response(JSON.stringify({ qr: data.base64 ?? data.qrcode?.base64 }), { headers: corsHeaders })
+    console.log('Evolution QR response:', JSON.stringify(data))
+    // Try all known field names across Evolution API versions
+    const qr = data.base64
+      ?? data.qrcode?.base64
+      ?? data.qrcode
+      ?? data.code
+      ?? data.qr
+      ?? null
+    return new Response(JSON.stringify({ qr, _raw: data }), { headers: corsHeaders })
   }
 
   if (action === 'status') {

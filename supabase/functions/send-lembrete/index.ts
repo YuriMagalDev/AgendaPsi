@@ -1,29 +1,38 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { normalizePhone, buildButtonText } from '../_shared/phone.ts'
+import { normalizePhone, buildReminderText } from '../_shared/phone.ts'
 
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL')!
+const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json',
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const { sessao_id, tipo } = await req.json() as { sessao_id: string; tipo: '48h' | '24h' | '2h' }
+  const { sessao_id, tipo, test } = await req.json() as {
+    sessao_id: string
+    tipo: '48h' | '24h' | '2h'
+    test?: boolean
+  }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
-  // 1. Check automation is active
+  // 1. Load config (in test mode we skip automacao_ativa, still require conexão)
   const { data: config } = await supabase
     .from('config_psicologo')
     .select('automacao_whatsapp_ativa, whatsapp_conectado, evolution_instance_name, evolution_token, nome')
     .limit(1).single()
 
-  if (!config?.automacao_whatsapp_ativa || !config?.whatsapp_conectado) {
+  if (!config?.whatsapp_conectado || !config?.evolution_instance_name) {
+    return new Response(JSON.stringify({ error: 'WhatsApp não conectado' }), { status: 412, headers: corsHeaders })
+  }
+  if (!test && !config.automacao_whatsapp_ativa) {
     return new Response(JSON.stringify({ skipped: 'automação inativa' }), { headers: corsHeaders })
   }
 
@@ -40,54 +49,91 @@ serve(async (req) => {
   }
 
   const nome = (sessao.pacientes as any)?.nome ?? sessao.avulso_nome ?? 'Paciente'
-  const telefone = (sessao.pacientes as any)?.telefone ?? sessao.avulso_telefone
-  if (!telefone) {
-    return new Response(JSON.stringify({ error: 'sem telefone' }), { status: 422, headers: corsHeaders })
+  const telefoneRaw = (sessao.pacientes as any)?.telefone ?? sessao.avulso_telefone
+  if (!telefoneRaw) {
+    return new Response(JSON.stringify({ error: 'sem telefone cadastrado para este paciente' }), { status: 422, headers: corsHeaders })
   }
 
-  const phone = normalizePhone(telefone)
+  const phone = normalizePhone(telefoneRaw)
   const dataHora = new Date(sessao.data_hora)
   const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   const diaSemana = dataHora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-  const texto = buildButtonText(tipo, nome, hora, diaSemana)
+  const texto = test
+    ? `🧪 *TESTE — este é um lembrete de teste*\n\n${buildReminderText(tipo, nome, hora, diaSemana)}`
+    : buildReminderText(tipo, nome, hora, diaSemana)
 
-  // 3. Insert confirmacao (unique index prevents double-send)
-  const { data: confirmacao, error: insertError } = await supabase
-    .from('confirmacoes_whatsapp')
-    .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false })
-    .select('id')
-    .single()
-
-  if (insertError?.code === '23505') {
-    return new Response(JSON.stringify({ skipped: 'já enviado' }), { headers: corsHeaders })
+  const instance = config.evolution_instance_name
+  const diag: Record<string, unknown> = {
+    test: !!test,
+    telefoneRaw,
+    phoneNormalized: phone,
+    instance,
+    evolutionUrl: EVOLUTION_API_URL,
   }
-  if (insertError) throw insertError
 
-  // 4. Call Evolution API
+  // 3. In test mode: verify connection state with Evolution API before sending
+  if (test) {
+    try {
+      const stateResp = await fetch(
+        `${EVOLUTION_API_URL}/instance/connectionState/${instance}`,
+        { headers: { 'apikey': EVOLUTION_API_KEY } }
+      )
+      const stateBody = await stateResp.text()
+      diag.connectionStateStatus = stateResp.status
+      diag.connectionStateBody = stateBody
+      console.log(`[test] connectionState [${stateResp.status}]: ${stateBody}`)
+
+      if (!stateResp.ok) {
+        return new Response(JSON.stringify({ error: 'instância não responde', ...diag }), { status: 502, headers: corsHeaders })
+      }
+      const parsed = JSON.parse(stateBody)
+      if (parsed?.instance?.state !== 'open') {
+        // Sync DB with reality so the UI shows State B and the user can reconnect
+        await supabase.from('config_psicologo').update({ whatsapp_conectado: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+        return new Response(JSON.stringify({ error: `instância não está conectada (state=${parsed?.instance?.state}). Reconecte escaneando um novo QR Code.`, ...diag }), { status: 412, headers: corsHeaders })
+      }
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'falha ao verificar conexão', detail: String(e), ...diag }), { status: 502, headers: corsHeaders })
+    }
+  }
+
+  // 4. In production mode: insert confirmacao row (unique index prevents double-send)
+  let confirmacaoId: string | null = null
+  if (!test) {
+    const { data: confirmacao, error: insertError } = await supabase
+      .from('confirmacoes_whatsapp')
+      .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false })
+      .select('id')
+      .single()
+
+    if (insertError?.code === '23505') {
+      return new Response(JSON.stringify({ skipped: 'já enviado' }), { headers: corsHeaders })
+    }
+    if (insertError) throw insertError
+    confirmacaoId = confirmacao!.id
+  }
+
+  // 5. Call Evolution API sendText
   const evoResp = await fetch(
-    `${EVOLUTION_API_URL}/message/sendButtons/${config.evolution_instance_name}`,
+    `${EVOLUTION_API_URL}/message/sendText/${instance}`,
     {
       method: 'POST',
-      headers: { 'apikey': config.evolution_token!, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        number: phone,
-        title: 'Confirmação de Sessão',
-        description: texto,
-        footer: config.nome ? `Psicóloga ${config.nome}` : 'Seu consultório',
-        buttons: [
-          { type: 'reply', reply: { id: 'CONFIRMAR', title: '✅ Confirmar' } },
-          { type: 'reply', reply: { id: 'CANCELAR',  title: '❌ Cancelar' } },
-        ],
-      }),
+      headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: phone, text: texto }),
     }
   )
+  const evoBody = await evoResp.text()
+  diag.sendStatus = evoResp.status
+  diag.sendBody = evoBody
+  console.log(`Evolution sendText [${evoResp.status}] phone=${phone} instance=${instance}: ${evoBody}`)
 
   if (!evoResp.ok) {
-    // Rollback so it can be retried
-    await supabase.from('confirmacoes_whatsapp').delete().eq('id', confirmacao!.id)
-    const errBody = await evoResp.text()
-    return new Response(JSON.stringify({ error: 'Evolution API falhou', detail: errBody }), { status: 502, headers: corsHeaders })
+    // Rollback confirmacao in production mode
+    if (confirmacaoId) {
+      await supabase.from('confirmacoes_whatsapp').delete().eq('id', confirmacaoId)
+    }
+    return new Response(JSON.stringify({ error: 'Evolution API falhou', ...diag }), { status: 502, headers: corsHeaders })
   }
 
-  return new Response(JSON.stringify({ ok: true, confirmacao_id: confirmacao!.id }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ ok: true, confirmacao_id: confirmacaoId, ...diag }), { headers: corsHeaders })
 })

@@ -29,7 +29,28 @@
       "Bash(curl -s \"http://localhost:5174/src/index.css\")",
       "Bash(curl -s \"http://localhost:5175/@vite/client\" -o /dev/null -w \"Server status: %{http_code}\\\\n\")",
       "Bash(curl -s \"http://localhost:5175/src/index.css\")",
-      "Bash(curl -s \"http://localhost:5175/\")"
+      "Bash(curl -s \"http://localhost:5175/\")",
+      "Bash(npx vitest *)",
+      "Bash(deno *)",
+      "Bash(cd C:\\\\\\\\Users\\\\\\\\yurig\\\\\\\\Documents\\\\\\\\Antigravity\\\\\\\\Psicologo)",
+      "Bash(railway status *)",
+      "Bash(railway list *)",
+      "Bash(railway link *)",
+      "Bash(railway service *)",
+      "Bash(railway --help)",
+      "Bash(railway volume *)",
+      "Bash(railway variable *)",
+      "Bash(railway logs *)",
+      "Bash(MSYS_NO_PATHCONV=1 railway volume *)",
+      "Bash(MSYS2_ARG_CONV_EXCL='*' railway volume *)",
+      "Bash(railway redeploy *)",
+      "Bash(railway restart *)",
+      "Bash(railway deployment *)",
+      "Bash(railway deploy *)",
+      "Bash(node -e \"const bu = require\\('@base-ui/react'\\); console.log\\(Object.keys\\(bu\\)\\)\")",
+      "Bash(node *)",
+      "Read(//c/Users/yurig/.claude/plugins/**)",
+      "Read(//c/Users/yurig/.claude/plugins/cache/**)"
     ]
   }
 }

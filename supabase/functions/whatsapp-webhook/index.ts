@@ -1,10 +1,11 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { normalizePhone } from '../_shared/phone.ts'
+import { normalizePhone, parseReplyText } from '../_shared/phone.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL')!
+const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')!
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')!
 
 serve(async (req) => {
@@ -21,10 +22,21 @@ serve(async (req) => {
     return new Response('ok')
   }
 
-  const buttonReply = payload.data?.message?.buttonsResponseMessage
-  if (!buttonReply) return new Response('ok')
+  // Extract reply text from all possible message shapes
+  const msg = payload.data?.message ?? {}
+  const replyText: string =
+    msg.conversation ??
+    msg.extendedTextMessage?.text ??
+    msg.buttonsResponseMessage?.selectedDisplayText ??
+    msg.buttonsResponseMessage?.selectedButtonId ??
+    msg.listResponseMessage?.singleSelectReply?.selectedRowId ??
+    msg.listResponseMessage?.title ??
+    ''
 
-  const selectedId: string = buttonReply.selectedButtonId
+  const selectedId = parseReplyText(replyText)
+  console.log(`Webhook reply: jid=${remoteJid} text="${replyText}" parsed=${selectedId}`)
+  if (!selectedId) return new Response('ok')
+
   const phone = normalizePhone(remoteJid.replace('@s.whatsapp.net', ''))
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
@@ -47,7 +59,7 @@ serve(async (req) => {
 
   const { data: config } = await supabase
     .from('config_psicologo')
-    .select('evolution_instance_name, evolution_token')
+    .select('evolution_instance_name')
     .limit(1).single()
 
   if (selectedId === 'CONFIRMAR') {
@@ -68,7 +80,7 @@ serve(async (req) => {
       `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
       {
         method: 'POST',
-        headers: { 'apikey': config!.evolution_token!, 'Content-Type': 'application/json' },
+        headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           number: phone,
           text: 'Entendido! 🙏 Gostaria de remarcar sua sessão? Se sim, entre em contato conosco para escolher um novo horário.',

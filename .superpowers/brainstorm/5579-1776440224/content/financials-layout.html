@@ -1,0 +1,105 @@
+<h2>Financials page — overall structure</h2>
+<p class="subtitle">How should the different sections be organized?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;padding:12px;background:#F7F5F2;border-radius:8px;">
+        <div style="background:#2D6A6A;color:white;padding:6px 10px;border-radius:6px;margin-bottom:8px;font-weight:600;">Financeiro — Abril 2026</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div style="background:white;border-radius:6px;padding:8px;border-left:3px solid #4CAF82;"><div style="font-size:10px;color:#7A7A7A">Receita</div><div style="font-weight:700;color:#1C1C1C">R$ 4.800</div></div>
+          <div style="background:white;border-radius:6px;padding:8px;border-left:3px solid #C17F59;"><div style="font-size:10px;color:#7A7A7A">Pendente</div><div style="font-weight:700;color:#1C1C1C">R$ 600</div></div>
+          <div style="background:white;border-radius:6px;padding:8px;border-left:3px solid #9B7EC8;"><div style="font-size:10px;color:#7A7A7A">Projeção</div><div style="font-weight:700;color:#1C1C1C">R$ 5.400</div></div>
+        </div>
+        <div style="background:white;border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="font-size:10px;font-weight:600;color:#7A7A7A;margin-bottom:4px;">PACIENTES</div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #E4E0DA;"><span>Ana Lima</span><span style="color:#4CAF82">R$ 800</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #E4E0DA;"><span>Bruno Melo</span><span style="color:#C17F59">R$ 300 pend.</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Carla Dias</span><span style="color:#4CAF82">R$ 600</span></div>
+        </div>
+        <div style="background:white;border-radius:6px;padding:8px;">
+          <div style="font-size:10px;font-weight:600;color:#7A7A7A;margin-bottom:4px;">REPASSES</div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Clínica (20%)</span><span>R$ 960</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Single scrolling page</h3>
+      <p>Month summary at top, patient list and repasses below. Everything visible with a scroll. Simple and fast.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;padding:12px;background:#F7F5F2;border-radius:8px;">
+        <div style="display:flex;gap:4px;margin-bottom:8px;">
+          <div style="background:#2D6A6A;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;">Resumo</div>
+          <div style="background:white;color:#7A7A7A;padding:4px 10px;border-radius:20px;font-size:11px;border:1px solid #E4E0DA;">Pacientes</div>
+          <div style="background:white;color:#7A7A7A;padding:4px 10px;border-radius:20px;font-size:11px;border:1px solid #E4E0DA;">Repasses</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+          <div style="background:white;border-radius:6px;padding:8px;border-left:3px solid #4CAF82;"><div style="font-size:10px;color:#7A7A7A">Recebido</div><div style="font-weight:700">R$ 4.800</div></div>
+          <div style="background:white;border-radius:6px;padding:8px;border-left:3px solid #C17F59;"><div style="font-size:10px;color:#7A7A7A">Pendente</div><div style="font-weight:700">R$ 600</div></div>
+        </div>
+        <div style="background:white;border-radius:6px;padding:8px;margin-bottom:6px;">
+          <div style="font-size:10px;color:#7A7A7A;margin-bottom:6px;">Sessões do mês</div>
+          <div style="display:flex;gap:4px;">
+            <div style="flex:4;background:#4CAF82;height:8px;border-radius:4px;"></div>
+            <div style="flex:1;background:#C17F59;height:8px;border-radius:4px;"></div>
+            <div style="flex:1;background:#E07070;height:8px;border-radius:4px;"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;font-size:10px;color:#7A7A7A;">
+            <span>● 24 concluídas</span><span>● 3 faltou</span><span>● 2 cancel.</span>
+          </div>
+        </div>
+        <div style="background:white;border-radius:6px;padding:8px;">
+          <div style="font-size:10px;color:#7A7A7A;margin-bottom:4px;">Projeção do mês</div>
+          <div style="font-weight:700;color:#2D6A6A">R$ 5.400 <span style="font-size:10px;font-weight:400;color:#7A7A7A">estimado</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Tabs (Resumo / Pacientes / Repasses)</h3>
+      <p>Summary tab with chart, separate tabs for patient breakdown and repasses. Cleaner, focused views per topic.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;padding:12px;background:#F7F5F2;border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:700;color:#1C1C1C">Abril 2026</div>
+          <div style="display:flex;gap:4px;">
+            <div style="background:white;border:1px solid #E4E0DA;padding:3px 6px;border-radius:4px;">◀</div>
+            <div style="background:white;border:1px solid #E4E0DA;padding:3px 6px;border-radius:4px;">▶</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px;">
+          <div style="background:white;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#4CAF82">R$ 4.800</div><div style="font-size:10px;color:#7A7A7A">recebido</div></div>
+          <div style="background:white;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#C17F59">R$ 600</div><div style="font-size:10px;color:#7A7A7A">pendente</div></div>
+          <div style="background:white;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#2D6A6A">29</div><div style="font-size:10px;color:#7A7A7A">sessões</div></div>
+        </div>
+        <div style="background:white;border-radius:6px;margin-bottom:6px;">
+          <div style="padding:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+            <span style="font-weight:600;font-size:11px;">Pacientes ▾</span>
+            <span style="color:#7A7A7A;font-size:10px;">6 pacientes</span>
+          </div>
+          <div style="border-top:1px solid #E4E0DA;padding:6px 8px;display:flex;justify-content:space-between;font-size:11px;"><span>Ana Lima</span><span style="color:#4CAF82">R$ 800</span></div>
+          <div style="padding:6px 8px;display:flex;justify-content:space-between;font-size:11px;"><span>Bruno Melo</span><span style="color:#C17F59">R$ 300 pend.</span></div>
+        </div>
+        <div style="background:white;border-radius:6px;">
+          <div style="padding:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:600;font-size:11px;">Repasses ▾</span>
+            <span style="color:#7A7A7A;font-size:10px;">R$ 960 a pagar</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Cards with collapsible sections</h3>
+      <p>KPIs always visible at top, patient list and repasses are collapsible sections below. Compact and flexible.</p>
+    </div>
+  </div>
+
+</div>

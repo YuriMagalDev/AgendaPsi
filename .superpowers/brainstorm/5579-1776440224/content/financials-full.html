@@ -1,0 +1,166 @@
+<h2>Financials — full design preview</h2>
+<p class="subtitle">Three tabs. Click each tab header below to see what's in it.</p>
+
+<div style="max-width:520px;margin:0 auto;font-family:'DM Sans',sans-serif;font-size:13px;">
+
+  <!-- Month nav -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div>
+      <div style="font-size:20px;font-weight:700;color:#1C1C1C">Financeiro</div>
+      <div style="color:#7A7A7A;font-size:13px">Abril 2026</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button style="background:white;border:1px solid #E4E0DA;padding:4px 10px;border-radius:6px;cursor:pointer;">◀</button>
+      <button style="background:white;border:1px solid #E4E0DA;padding:4px 10px;border-radius:6px;cursor:pointer;">▶</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;">
+    <div id="tab-resumo" onclick="showTab('resumo')" style="padding:5px 14px;border-radius:20px;background:#2D6A6A;color:white;font-weight:600;cursor:pointer;font-size:12px;">Resumo</div>
+    <div id="tab-pacientes" onclick="showTab('pacientes')" style="padding:5px 14px;border-radius:20px;background:white;color:#7A7A7A;border:1px solid #E4E0DA;cursor:pointer;font-size:12px;">Pacientes</div>
+    <div id="tab-repasses" onclick="showTab('repasses')" style="padding:5px 14px;border-radius:20px;background:white;color:#7A7A7A;border:1px solid #E4E0DA;cursor:pointer;font-size:12px;">Repasses</div>
+  </div>
+
+  <!-- TAB: Resumo -->
+  <div id="content-resumo">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="background:white;border-radius:12px;padding:14px;border-left:4px solid #4CAF82;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Recebido</div>
+        <div style="font-size:22px;font-weight:700;color:#1C1C1C;font-family:monospace;">R$ 4.800</div>
+        <div style="font-size:11px;color:#4CAF82;margin-top:2px;">24 sessões pagas</div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:14px;border-left:4px solid #C17F59;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Pendente</div>
+        <div style="font-size:22px;font-weight:700;color:#1C1C1C;font-family:monospace;">R$ 600</div>
+        <div style="font-size:11px;color:#C17F59;margin-top:2px;">3 sessões em aberto</div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:14px;border-left:4px solid #9B7EC8;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Projeção</div>
+        <div style="font-size:22px;font-weight:700;color:#1C1C1C;font-family:monospace;">R$ 5.400</div>
+        <div style="font-size:11px;color:#9B7EC8;margin-top:2px;">baseada em sessões agendadas</div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:14px;border-left:4px solid #2D6A6A;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Sessões</div>
+        <div style="font-size:22px;font-weight:700;color:#1C1C1C;">29</div>
+        <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">24 conc · 3 faltou · 2 cancel.</div>
+      </div>
+    </div>
+
+    <!-- Bar chart mockup -->
+    <div style="background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+      <div style="font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Sessões por semana</div>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:60px;padding-bottom:4px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="width:100%;background:#E07070;height:4px;border-radius:2px 2px 0 0;"></div>
+          <div style="width:100%;background:#C17F59;height:8px;"></div>
+          <div style="width:100%;background:#4CAF82;height:40px;border-radius:0 0 2px 2px;"></div>
+          <div style="font-size:9px;color:#7A7A7A;margin-top:3px;">S1</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="width:100%;background:#C17F59;height:6px;border-radius:2px 2px 0 0;"></div>
+          <div style="width:100%;background:#4CAF82;height:48px;border-radius:0 0 2px 2px;"></div>
+          <div style="font-size:9px;color:#7A7A7A;margin-top:3px;">S2</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="width:100%;background:#E07070;height:4px;border-radius:2px 2px 0 0;"></div>
+          <div style="width:100%;background:#4CAF82;height:36px;border-radius:0 0 2px 2px;"></div>
+          <div style="font-size:9px;color:#7A7A7A;margin-top:3px;">S3</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div style="width:100%;background:#4CAF82;height:20px;border-radius:2px 2px 2px 2px;opacity:0.4;border:1px dashed #4CAF82;background:repeating-linear-gradient(45deg,#E8F4F4,#E8F4F4 2px,white 2px,white 6px);"></div>
+          <div style="font-size:9px;color:#7A7A7A;margin-top:3px;">S4</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;font-size:10px;color:#7A7A7A;">
+        <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:8px;height:8px;background:#4CAF82;border-radius:2px;"></span>Concluída</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:8px;height:8px;background:#C17F59;border-radius:2px;"></span>Faltou</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:8px;height:8px;background:#E07070;border-radius:2px;"></span>Cancelada</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:8px;height:8px;background:#E8F4F4;border:1px dashed #4CAF82;border-radius:2px;"></span>Agendada</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Pacientes -->
+  <div id="content-pacientes" style="display:none;">
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+      <div style="padding:10px 14px;border-bottom:1px solid #E4E0DA;display:grid;grid-template-columns:1fr auto auto;gap:8px;font-size:11px;color:#7A7A7A;text-transform:uppercase;letter-spacing:.05em;">
+        <span>Paciente</span><span>Sessões</span><span>Total</span>
+      </div>
+      <div onclick="" style="padding:12px 14px;border-bottom:1px solid #E4E0DA;display:grid;grid-template-columns:1fr auto auto;gap:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#F7F5F2'" onmouseout="this.style.background='white'">
+        <div><div style="font-weight:500;color:#1C1C1C">Ana Lima</div><div style="font-size:11px;color:#7A7A7A">Última: 15/04</div></div>
+        <div style="color:#7A7A7A;font-size:12px;text-align:right;padding-top:2px;">6</div>
+        <div style="text-align:right;"><div style="font-weight:600;color:#4CAF82;font-family:monospace;">R$ 1.200</div></div>
+      </div>
+      <div style="padding:12px 14px;border-bottom:1px solid #E4E0DA;display:grid;grid-template-columns:1fr auto auto;gap:8px;cursor:pointer;" onmouseover="this.style.background='#F7F5F2'" onmouseout="this.style.background='white'">
+        <div><div style="font-weight:500;color:#1C1C1C">Bruno Melo</div><div style="font-size:11px;color:#7A7A7A">Última: 12/04</div></div>
+        <div style="color:#7A7A7A;font-size:12px;text-align:right;padding-top:2px;">4</div>
+        <div style="text-align:right;">
+          <div style="font-weight:600;color:#4CAF82;font-family:monospace;">R$ 600</div>
+          <div style="font-size:11px;color:#C17F59;">+ R$ 300 pend.</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px;border-bottom:1px solid #E4E0DA;display:grid;grid-template-columns:1fr auto auto;gap:8px;cursor:pointer;" onmouseover="this.style.background='#F7F5F2'" onmouseout="this.style.background='white'">
+        <div><div style="font-weight:500;color:#1C1C1C">Carla Dias</div><div style="font-size:11px;color:#7A7A7A">Última: 17/04</div></div>
+        <div style="color:#7A7A7A;font-size:12px;text-align:right;padding-top:2px;">5</div>
+        <div style="text-align:right;"><div style="font-weight:600;color:#4CAF82;font-family:monospace;">R$ 1.000</div></div>
+      </div>
+      <div style="padding:12px 14px;display:grid;grid-template-columns:1fr auto auto;gap:8px;cursor:pointer;" onmouseover="this.style.background='#F7F5F2'" onmouseout="this.style.background='white'">
+        <div><div style="font-weight:500;color:#1C1C1C">Daniel Rocha</div><div style="font-size:11px;color:#7A7A7A">Última: 10/04</div></div>
+        <div style="color:#7A7A7A;font-size:12px;text-align:right;padding-top:2px;">3</div>
+        <div style="text-align:right;"><div style="font-weight:600;color:#4CAF82;font-family:monospace;">R$ 600</div></div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:#7A7A7A;text-align:center;">Clique em um paciente para ver o histórico detalhado →</div>
+  </div>
+
+  <!-- TAB: Repasses -->
+  <div id="content-repasses" style="display:none;">
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:12px;">
+      <div style="padding:14px;border-bottom:1px solid #E4E0DA;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-weight:600;color:#1C1C1C">Clínica Centro (20%)</div>
+            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">Percentual sobre 24 sessões pagas</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px;font-weight:700;font-family:monospace;color:#1C1C1C;">R$ 960</div>
+            <div style="font-size:11px;color:#C17F59;margin-top:2px;">● A pagar</div>
+          </div>
+        </div>
+        <button style="margin-top:10px;width:100%;padding:8px;border-radius:8px;border:1px solid #2D6A6A;color:#2D6A6A;background:white;font-weight:600;cursor:pointer;font-size:12px;">Marcar como pago</button>
+      </div>
+      <div style="padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-weight:600;color:#1C1C1C">Supervisão (fixo)</div>
+            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">Valor fixo mensal</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px;font-weight:700;font-family:monospace;color:#1C1C1C;">R$ 400</div>
+            <div style="font-size:11px;color:#4CAF82;margin-top:2px;">● Pago em 05/04</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;width:100%;padding:8px;border-radius:8px;background:#F0FAF5;color:#4CAF82;font-weight:600;font-size:12px;text-align:center;">✓ Pago</div>
+      </div>
+    </div>
+    <div style="background:#E8F4F4;border-radius:10px;padding:12px;font-size:12px;color:#2D6A6A;">
+      <strong>Total a pagar este mês:</strong> R$ 960 &nbsp;|&nbsp; <strong>Já pago:</strong> R$ 400
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name) {
+  ['resumo','pacientes','repasses'].forEach(t => {
+    document.getElementById('content-'+t).style.display = t === name ? 'block' : 'none';
+    const tab = document.getElementById('tab-'+t);
+    if (t === name) {
+      tab.style.background = '#2D6A6A'; tab.style.color = 'white'; tab.style.border = 'none';
+    } else {
+      tab.style.background = 'white'; tab.style.color = '#7A7A7A'; tab.style.border = '1px solid #E4E0DA';
+    }
+  });
+}
+</script>
