@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { format, addDays, subDays, isToday } from 'date-fns'
+import { ChevronLeft, ChevronRight, Plus, CalendarIcon } from 'lucide-react'
+import { format, addDays, subDays, isToday, getISOWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSessoesDia } from '@/hooks/useSessoesDia'
 import { SessaoCard } from '@/components/sessao/SessaoCard'
 import { NovaSessaoModal } from '@/components/sessao/NovaSessaoModal'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 
 function toDateString(d: Date): string {
   return format(d, 'yyyy-MM-dd')
@@ -12,28 +14,61 @@ function toDateString(d: Date): string {
 
 export function AgendaPage() {
   const [data, setData] = useState(new Date())
+  const [calendarAberto, setCalendarAberto] = useState(false)
   const dateStr = toDateString(data)
   const { sessoes, loading, error, refetch } = useSessoesDia(dateStr)
   const [modalAberto, setModalAberto] = useState(false)
 
+  const semana = getISOWeek(data)
   const tituloData = isToday(data)
     ? 'Hoje'
     : format(data, "EEEE, d 'de' MMMM", { locale: ptBR })
+
+  function selecionarDia(day: Date | undefined) {
+    if (!day) return
+    setData(day)
+    setCalendarAberto(false)
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setData(subDays(data, 1))} className="text-muted hover:text-[#1C1C1C] transition-colors">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setData(d => subDays(d, 1))}
+            className="text-muted hover:text-[#1C1C1C] transition-colors p-1"
+          >
             <ChevronLeft size={20} />
           </button>
-          <h1 className="font-display text-xl font-semibold text-[#1C1C1C] capitalize">{tituloData}</h1>
-          <button onClick={() => setData(addDays(data, 1))} className="text-muted hover:text-[#1C1C1C] transition-colors">
+          <Popover open={calendarAberto} onOpenChange={setCalendarAberto}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-bg transition-colors">
+                <CalendarIcon size={14} className="text-muted" />
+                <h1 className="font-display text-xl font-semibold text-[#1C1C1C] capitalize">
+                  {tituloData}
+                </h1>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={data}
+                onSelect={selecionarDia}
+                locale={ptBR}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <button
+            onClick={() => setData(d => addDays(d, 1))}
+            className="text-muted hover:text-[#1C1C1C] transition-colors p-1"
+          >
             <ChevronRight size={20} />
           </button>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-xs text-muted">Semana {semana}</span>
           {!isToday(data) && (
             <button onClick={() => setData(new Date())} className="text-xs text-primary hover:underline">
               Hoje
