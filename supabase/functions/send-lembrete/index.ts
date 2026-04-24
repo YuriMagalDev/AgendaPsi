@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { normalizePhone, buildReminderText, REMINDER_BUTTONS } from '../_shared/phone.ts'
+import { normalizePhone, buildReminderText } from '../_shared/phone.ts'
 
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL')!
 const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')!
@@ -59,7 +59,10 @@ serve(async (req) => {
   const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   const diaSemana = dataHora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
   const descricao = buildReminderText(tipo, nome, hora, diaSemana)
-  const texto = `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}\n\nPor favor, responda:\n*1* — ✅ Confirmar presença\n*2* — ❌ Cancelar`
+  const opcoes = '\n\nPor favor, responda:\n*1* — ✅ Confirmar presença\n*2* — ❌ Cancelar'
+  const texto = test
+    ? `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}${opcoes}`
+    : `${descricao}${opcoes}`
 
   const instance = config.evolution_instance_name
   const diag: Record<string, unknown> = {
@@ -112,21 +115,11 @@ serve(async (req) => {
     confirmacaoId = confirmacao!.id
   }
 
-  // 5. Send message — buttons in production, plain text in test mode
-  const [evoEndpoint, evoBody_] = test
-    ? [`${EVOLUTION_API_URL}/message/sendText/${instance}`,   JSON.stringify({ number: phone, text: texto })]
-    : [`${EVOLUTION_API_URL}/message/sendButtons/${instance}`, JSON.stringify({
-        number: phone,
-        title: 'Confirmação de Sessão',
-        description: descricao,
-        footer: 'AgendaPsi',
-        buttons: REMINDER_BUTTONS,
-      })]
-
-  const evoResp = await fetch(evoEndpoint, {
+  // 5. Send via sendText — button messages silently drop on personal WhatsApp (Baileys)
+  const evoResp = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instance}`, {
     method: 'POST',
     headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-    body: evoBody_,
+    body: JSON.stringify({ number: phone, text: texto }),
   })
   const evoBody = await evoResp.text()
   diag.sendStatus = evoResp.status
