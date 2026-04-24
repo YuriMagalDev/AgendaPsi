@@ -57,9 +57,19 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
 
   async function atualizar(novoStatus: SessaoStatus) {
     setSalvando(true)
-    await supabase.from('sessoes').update({ status: novoStatus }).eq('id', sessao.id)
-    onUpdate()
-    onClose()
+    setErro(null)
+    try {
+      const { error } = await supabase
+        .from('sessoes')
+        .update({ status: novoStatus })
+        .eq('id', sessao.id)
+      if (error) throw error
+      onUpdate()
+      onClose()
+    } catch {
+      setErro('Erro ao atualizar status. Tente novamente.')
+      setSalvando(false)
+    }
   }
 
   async function remarcar(novaDataHora: string) {
@@ -104,14 +114,21 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
   async function confirmarPagamento() {
     if (!formaPagamento) return
     setSalvando(true)
-    await supabase.from('sessoes').update({
-      pago: true,
-      forma_pagamento: formaPagamento,
-      valor_cobrado: valorPagamento ? Number(valorPagamento) : null,
-      data_pagamento: new Date().toISOString(),
-    }).eq('id', sessao.id)
-    onUpdate()
-    onClose()
+    setErro(null)
+    try {
+      const { error } = await supabase.from('sessoes').update({
+        pago: true,
+        forma_pagamento: formaPagamento,
+        valor_cobrado: valorPagamento ? Number(valorPagamento) : null,
+        data_pagamento: new Date().toISOString(),
+      }).eq('id', sessao.id)
+      if (error) throw error
+      onUpdate()
+      onClose()
+    } catch {
+      setErro('Erro ao registrar pagamento. Tente novamente.')
+      setSalvando(false)
+    }
   }
 
   async function salvarEdicao() {
