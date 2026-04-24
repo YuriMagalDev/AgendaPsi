@@ -4,7 +4,9 @@ import { Plus, ChevronRight, UserRound } from 'lucide-react'
 import { usePacientes } from '@/hooks/usePacientes'
 import { PatientFilters } from '@/components/pacientes/PatientFilters'
 import { filterPacientes, DEFAULT_PACIENTE_FILTERS } from '@/lib/filterPacientes'
+import { buildCsv } from '@/lib/csv'
 import type { Paciente } from '@/lib/types'
+import type { PatientCsvRow } from '@/lib/csv'
 
 function PacienteCard({ paciente }: { paciente: Paciente }) {
   return (
@@ -37,17 +39,45 @@ export function PacientesPage() {
 
   const filtered = filterPacientes(pacientes, filters)
 
+  function exportarCsv() {
+    const rows: PatientCsvRow[] = pacientes.map(p => ({
+      nome: p.nome,
+      telefone: p.telefone ?? '',
+      email: p.email ?? '',
+      data_nascimento: p.data_nascimento ?? '',
+      tipo: p.tipo,
+      ativo: String(p.ativo),
+    }))
+    const csv = buildCsv(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'pacientes.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Pacientes</h1>
-        <Link
-          to="/pacientes/novo"
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus size={16} />
-          Novo
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportarCsv}
+            disabled={loading || pacientes.length === 0}
+            className="text-sm text-muted border border-border px-3 py-2 rounded-lg hover:bg-bg transition-colors disabled:opacity-40"
+          >
+            Exportar CSV
+          </button>
+          <Link
+            to="/pacientes/novo"
+            className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={16} />
+            Novo
+          </Link>
+        </div>
       </div>
 
       <PatientFilters
