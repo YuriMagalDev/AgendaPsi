@@ -66,6 +66,7 @@ export interface Sessao {
   data_pagamento: string | null
   sessao_origem_id: string | null
   duracao_minutos: number
+  notas_checklist: string | null
   criado_em: string
 }
 
@@ -179,4 +180,5 @@ export type PacienteComConvenio = Paciente & {
   convenios: { nome: string; valor_sessao: number | null } | null
   modalidades_sessao?: { nome: string; emoji: string } | null
   meios_atendimento?:  { nome: string; emoji: string } | null
+  contratos?: { tipo: ContratoTipo; ativo: boolean }[] | null
 }
