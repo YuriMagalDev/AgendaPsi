@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function PatientFilters({ filters, onChange, resultCount }: Props) {
-  const { modalidades } = useModalidadesSessao()
+  const { modalidadesSessao: modalidades } = useModalidadesSessao()
   const hasActiveFilters = !filters.ativoOnly || !!filters.modalidadeId || !!filters.tipoContrato
 
   return (
