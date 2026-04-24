@@ -61,7 +61,7 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm font-medium text-[#1C1C1C]">{nomePaciente}</p>
-          <p className="text-xs text-muted">{horario} · {sessao.modalidades?.nome}</p>
+          <p className="text-xs text-muted">{horario} · {sessao.modalidades_sessao?.nome}</p>
         </div>
         {novoStatus && (
           <span className="text-xs font-medium px-2 py-0.5 rounded-full"
