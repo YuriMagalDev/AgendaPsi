@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { normalizePhone, buildReminderText } from '../_shared/phone.ts'
+import { normalizePhone, buildReminderText, REMINDER_BUTTONS } from '../_shared/phone.ts'
 
 const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL')!
 const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')!
@@ -58,9 +58,8 @@ serve(async (req) => {
   const dataHora = new Date(sessao.data_hora)
   const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   const diaSemana = dataHora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-  const texto = test
-    ? `🧪 *TESTE — este é um lembrete de teste*\n\n${buildReminderText(tipo, nome, hora, diaSemana)}`
-    : buildReminderText(tipo, nome, hora, diaSemana)
+  const descricao = buildReminderText(tipo, nome, hora, diaSemana)
+  const texto = `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}\n\nPor favor, responda:\n*1* — ✅ Confirmar presença\n*2* — ❌ Cancelar`
 
   const instance = config.evolution_instance_name
   const diag: Record<string, unknown> = {
@@ -113,19 +112,26 @@ serve(async (req) => {
     confirmacaoId = confirmacao!.id
   }
 
-  // 5. Call Evolution API sendText
-  const evoResp = await fetch(
-    `${EVOLUTION_API_URL}/message/sendText/${instance}`,
-    {
-      method: 'POST',
-      headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number: phone, text: texto }),
-    }
-  )
+  // 5. Send message — buttons in production, plain text in test mode
+  const [evoEndpoint, evoBody_] = test
+    ? [`${EVOLUTION_API_URL}/message/sendText/${instance}`,   JSON.stringify({ number: phone, text: texto })]
+    : [`${EVOLUTION_API_URL}/message/sendButtons/${instance}`, JSON.stringify({
+        number: phone,
+        title: 'Confirmação de Sessão',
+        description: descricao,
+        footer: 'AgendaPsi',
+        buttons: REMINDER_BUTTONS,
+      })]
+
+  const evoResp = await fetch(evoEndpoint, {
+    method: 'POST',
+    headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+    body: evoBody_,
+  })
   const evoBody = await evoResp.text()
   diag.sendStatus = evoResp.status
   diag.sendBody = evoBody
-  console.log(`Evolution sendText [${evoResp.status}] phone=${phone} instance=${instance}: ${evoBody}`)
+  console.log(`Evolution send [${evoResp.status}] phone=${phone} instance=${instance}: ${evoBody}`)
 
   if (!evoResp.ok) {
     // Rollback confirmacao in production mode

@@ -16,8 +16,13 @@ export function buildReminderText(
     '24h': `Olá, *${nome}*! 😊\n\nSua sessão é *hoje às ${hora}*.`,
     '2h':  `Olá, *${nome}*! 🕐\n\nSua sessão começa em *2 horas, às ${hora}*.`,
   }
-  return `${intros[tipo]}\n\nPor favor, responda:\n*1* — ✅ Confirmar presença\n*2* — ❌ Cancelar`
+  return intros[tipo]
 }
+
+export const REMINDER_BUTTONS = [
+  { buttonId: 'CONFIRMAR', buttonText: { displayText: '✅ Confirmar presença' }, type: 1 },
+  { buttonId: 'CANCELAR',  buttonText: { displayText: '❌ Cancelar' },           type: 1 },
+]
 
 const CONFIRMAR_REGEX = /^\s*(1|sim|s|confirmar|confirmo|confirmado|ok|✅)\s*$/i
 const CANCELAR_REGEX  = /^\s*(2|não|nao|n|cancelar|cancelo|cancelado|❌)\s*$/i
