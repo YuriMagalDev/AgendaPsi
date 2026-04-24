@@ -45,10 +45,8 @@ export function useKanban() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  async function updateStatus(id: string, status: SessaoStatus, remarcada_para?: string) {
-    const patch: Record<string, unknown> = { status }
-    if (remarcada_para) patch.remarcada_para = remarcada_para
-    const { error: err } = await supabase.from('sessoes').update(patch).eq('id', id)
+  async function updateStatus(id: string, status: SessaoStatus) {
+    const { error: err } = await supabase.from('sessoes').update({ status }).eq('id', id)
     if (err) throw err
     await fetchAll()
   }
