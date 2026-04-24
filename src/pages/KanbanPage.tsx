@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { KanbanFilters } from '@/components/kanban/KanbanFilters'
+import { filterSessoes } from '@/lib/filterSessoes'
+import type { SessaoFilters } from '@/lib/filterSessoes'
 import { ChevronLeft, ChevronRight, X, CheckCircle2 } from 'lucide-react'
 import { startOfWeek, addWeeks, subWeeks, addDays, format, isSameWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -65,7 +69,7 @@ function SessaoPanel({
     try {
       const { error: updateError } = await supabase
         .from('sessoes')
-        .update({ status: 'remarcada', remarcada_para: novaDataHora })
+        .update({ status: 'remarcada' })
         .eq('id', sessao.id)
       if (updateError) throw updateError
 
@@ -73,19 +77,19 @@ function SessaoPanel({
         paciente_id: sessao.paciente_id,
         avulso_nome: sessao.avulso_nome,
         avulso_telefone: sessao.avulso_telefone,
-        modalidade_id: sessao.modalidade_id,
+        modalidade_sessao_id: sessao.modalidade_sessao_id,
+        meio_atendimento_id: sessao.meio_atendimento_id,
         data_hora: novaDataHora,
         status: 'agendada',
         valor_cobrado: sessao.valor_cobrado,
         pago: false,
         data_pagamento: null,
-        remarcada_para: null,
         sessao_origem_id: sessao.id,
       })
       if (insertError) {
         await supabase
           .from('sessoes')
-          .update({ status: sessao.status, remarcada_para: null })
+          .update({ status: sessao.status })
           .eq('id', sessao.id)
         throw insertError
       }
@@ -239,10 +243,27 @@ export function KanbanPage() {
   const [defaultDateTime, setDefaultDateTime] = useState<string | undefined>()
   const [sessaoSelecionada, setSessaoSelecionada] = useState<SessaoView | null>(null)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filters, setFilters] = useState<SessaoFilters>({
+    search: searchParams.get('q') ?? '',
+    modalidadeId: searchParams.get('mod') ?? '',
+  })
+
+  function handleFiltersChange(f: SessaoFilters) {
+    setFilters(f)
+    const params = new URLSearchParams()
+    if (f.search) params.set('q', f.search)
+    if (f.modalidadeId) params.set('mod', f.modalidadeId)
+    setSearchParams(params, { replace: true })
+  }
+
   const { sessoes, loading, refetch } = useSemana(weekStart)
   const { config } = useConfigPsicologo()
   const horaInicio = parseHora(config?.horario_inicio, 7)
   const horaFim = parseHora(config?.horario_fim, 21)
+
+  const sessoesFiltradas = filterSessoes(sessoes, filters)
+  const hiddenCount = sessoes.length - sessoesFiltradas.length
 
   const isEstaSemana = isSameWeek(weekStart, new Date(), { weekStartsOn: 1 })
   const labelSemana =
@@ -292,11 +313,18 @@ export function KanbanPage() {
         </button>
       </div>
 
+      {/* Filters */}
+      <KanbanFilters
+        filters={filters}
+        onChange={handleFiltersChange}
+        hiddenCount={hiddenCount}
+      />
+
       {/* Grid */}
       <div className="flex-1 overflow-auto">
         <SemanaGrid
           weekStart={weekStart}
-          sessoes={sessoes}
+          sessoes={sessoesFiltradas}
           loading={loading}
           horaInicio={horaInicio}
           horaFim={horaFim}
