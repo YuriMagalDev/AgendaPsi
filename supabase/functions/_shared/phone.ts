@@ -20,8 +20,8 @@ export function buildReminderText(
 }
 
 export const REMINDER_BUTTONS = [
-  { buttonId: 'CONFIRMAR', buttonText: { displayText: '✅ Confirmar presença' }, type: 1 },
-  { buttonId: 'CANCELAR',  buttonText: { displayText: '❌ Cancelar' },           type: 1 },
+  { buttonId: 'CONFIRMAR', buttonText: { displayText: '✅ Confirmar presença' }, type: 'reply' },
+  { buttonId: 'CANCELAR',  buttonText: { displayText: '❌ Cancelar' },           type: 'reply' },
 ]
 
 const CONFIRMAR_REGEX = /^\s*(1|sim|s|confirmar|confirmo|confirmado|ok|✅)\s*$/i
