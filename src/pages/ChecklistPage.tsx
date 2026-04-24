@@ -16,7 +16,7 @@ const FORMAS_PAGAMENTO: { value: FormaPagamento; label: string }[] = [
   { value: 'cartao_credito', label: 'Crédito' },
 ]
 
-type StatusUpdate = { id: string; status: SessaoStatus; remarcada_para?: string }
+type StatusUpdate = { id: string; status: SessaoStatus }
 type PagamentoUpdate = { id: string; pago: boolean; forma_pagamento: FormaPagamento | null; valor_cobrado: number | null }
 
 function getStatusColor(s: SessaoStatus): string {
@@ -176,26 +176,26 @@ export function ChecklistPage() {
     try {
       const { error: updateError } = await supabase
         .from('sessoes')
-        .update({ status: 'remarcada', remarcada_para: novaDataHora })
+        .update({ status: 'remarcada' })
         .eq('id', sessao.id)
       if (updateError) throw updateError
       const { error: insertError } = await supabase.from('sessoes').insert({
         paciente_id: sessao.paciente_id,
         avulso_nome: sessao.avulso_nome,
         avulso_telefone: sessao.avulso_telefone,
-        modalidade_id: sessao.modalidade_id,
+        modalidade_sessao_id: sessao.modalidade_sessao_id,
+        meio_atendimento_id: sessao.meio_atendimento_id,
         data_hora: novaDataHora,
         status: 'agendada',
         valor_cobrado: sessao.valor_cobrado,
         pago: false,
         data_pagamento: null,
-        remarcada_para: null,
         sessao_origem_id: sessao.id,
       })
       if (insertError) {
         await supabase
           .from('sessoes')
-          .update({ status: sessao.status, remarcada_para: null })
+          .update({ status: sessao.status })
           .eq('id', sessao.id)
         throw insertError
       }
@@ -211,9 +211,7 @@ export function ChecklistPage() {
   async function salvarTudo() {
     setSalvando(true)
     for (const u of updates) {
-      const patch: Record<string, unknown> = { status: u.status }
-      if (u.remarcada_para) patch.remarcada_para = u.remarcada_para
-      await supabase.from('sessoes').update(patch).eq('id', u.id)
+      await supabase.from('sessoes').update({ status: u.status }).eq('id', u.id)
     }
     for (const p of pagamentos.filter(p => p.pago)) {
       await supabase.from('sessoes').update({

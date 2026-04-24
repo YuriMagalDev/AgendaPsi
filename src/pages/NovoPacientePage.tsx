@@ -88,7 +88,6 @@ function gerarSessoesParaSlot(pacienteId: string, slot: SlotSemanalInput, semana
       valor_cobrado: null,
       pago: pagoAutomatico,
       data_pagamento: pagoAutomatico ? new Date().toISOString() : null,
-      remarcada_para: null,
       sessao_origem_id: null,
       duracao_minutos: 50,
     }
