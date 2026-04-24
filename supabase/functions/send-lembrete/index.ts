@@ -59,7 +59,7 @@ serve(async (req) => {
   const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   const diaSemana = dataHora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
   const descricao = buildReminderText(tipo, nome, hora, diaSemana)
-  const opcoes = '\n\nPor favor, responda:\n*1* — ✅ Confirmar presença\n*2* — ❌ Cancelar'
+  const opcoes = '\n\n👉 *Responda esta mensagem com:*\n*SIM* ou *1* — para confirmar sua presença ✅\n*NÃO* ou *2* — para cancelar ❌'
   const texto = test
     ? `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}${opcoes}`
     : `${descricao}${opcoes}`
