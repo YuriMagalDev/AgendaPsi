@@ -36,18 +36,19 @@ export interface UpdatePacienteInput {
   } | null
 }
 
-export function usePacientes() {
+export function usePacientes(opts?: { ativoOnly?: boolean }) {
+  const ativoOnly = opts?.ativoOnly ?? true
   const [pacientes, setPacientes] = useState<PacienteComConvenio[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   async function fetchPacientes() {
     setLoading(true)
-    const { data, error } = await supabase
+    let q = supabase
       .from('pacientes')
-      .select('*, convenios(nome, valor_sessao), modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji)')
-      .eq('ativo', true)
-      .order('nome')
+      .select('*, convenios(nome, valor_sessao), modalidades_sessao(nome, emoji), meios_atendimento(nome, emoji), contratos(tipo, ativo)')
+    if (ativoOnly) q = q.eq('ativo', true)
+    const { data, error } = await q.order('nome')
 
     if (error) {
       setError(error.message)

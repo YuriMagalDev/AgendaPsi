@@ -160,4 +160,25 @@ describe('usePacientes', () => {
       act(async () => { await result.current.updatePaciente('p-1', { nome: 'X' }) })
     ).rejects.toBeDefined()
   })
+
+  it('when ativoOnly is false, does not filter by ativo', async () => {
+    const mockData = [
+      { id: '1', nome: 'Ativo', ativo: true },
+      { id: '2', nome: 'Inativo', ativo: false },
+    ]
+    const eqSpy = vi.fn().mockReturnThis()
+    vi.mocked(supabase.from).mockReturnValue(
+      buildChain({
+        eq: eqSpy,
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      })
+    )
+
+    const { result } = renderHook(() => usePacientes({ ativoOnly: false }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // eq('ativo', true) should NOT have been called
+    expect(eqSpy).not.toHaveBeenCalledWith('ativo', true)
+    expect(result.current.pacientes).toEqual(mockData)
+  })
 })
