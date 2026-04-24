@@ -46,7 +46,7 @@ serve(async (req) => {
     .from('confirmacoes_whatsapp')
     .select(`id, sessao_id, sessoes!inner(data_hora, status, paciente_id, avulso_telefone, pacientes(telefone))`)
     .is('confirmado', null)
-    .gt('sessoes.data_hora', new Date().toISOString())
+    .gt('sessoes.data_hora', new Date(Date.now() - 3 * 3600_000).toISOString())
     .order('mensagem_enviada_em', { ascending: false })
 
   const match = rows?.find(r => {
