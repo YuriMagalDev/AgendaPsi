@@ -4,9 +4,11 @@ import { format, addDays, subDays, isToday, getISOWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSessoesDia } from '@/hooks/useSessoesDia'
 import { SessaoCard } from '@/components/sessao/SessaoCard'
+import { SessaoPanel } from '@/components/sessao/SessaoPanel'
 import { NovaSessaoModal } from '@/components/sessao/NovaSessaoModal'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import type { SessaoView } from '@/lib/types'
 
 function toDateString(d: Date): string {
   return format(d, 'yyyy-MM-dd')
@@ -18,6 +20,7 @@ export function AgendaPage() {
   const dateStr = toDateString(data)
   const { sessoes, loading, error, refetch } = useSessoesDia(dateStr)
   const [modalAberto, setModalAberto] = useState(false)
+  const [sessaoSelecionada, setSessaoSelecionada] = useState<SessaoView | null>(null)
 
   const semana = getISOWeek(data)
   const tituloData = isToday(data)
@@ -101,7 +104,7 @@ export function AgendaPage() {
       {!loading && !error && sessoes.length > 0 && (
         <div className="flex flex-col gap-2">
           {sessoes.map(s => (
-            <SessaoCard key={s.id} sessao={s} />
+            <SessaoCard key={s.id} sessao={s} onClick={() => setSessaoSelecionada(s)} />
           ))}
         </div>
       )}
@@ -111,6 +114,14 @@ export function AgendaPage() {
           defaultDate={dateStr}
           onClose={() => setModalAberto(false)}
           onSaved={() => { refetch(); setModalAberto(false) }}
+        />
+      )}
+
+      {sessaoSelecionada && (
+        <SessaoPanel
+          sessao={sessaoSelecionada}
+          onClose={() => setSessaoSelecionada(null)}
+          onUpdate={refetch}
         />
       )}
     </div>
