@@ -143,9 +143,10 @@ export interface SlotSemanal {
   nome: string | null
   dia_semana: number
   horario: string
-  modalidade_sessao_id: string
-  meio_atendimento_id: string
+  modalidade_sessao_id: string | null
+  meio_atendimento_id: string | null
   is_pacote: boolean
+  intervalo_semanas: number
   ativo: boolean
   data_fim: string | null
   criado_em: string
@@ -155,9 +156,8 @@ export interface SlotSemanalInput {
   nome: string
   dia_semana: number
   horario: string
-  modalidade_sessao_id: string
-  meio_atendimento_id: string
   is_pacote: boolean
+  intervalo_semanas: number
 }
 
 export interface Convenio {
