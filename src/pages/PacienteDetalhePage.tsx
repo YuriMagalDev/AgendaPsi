@@ -185,6 +185,9 @@ export function PacienteDetalhePage() {
                     <p className="text-sm text-[#1C1C1C]">
                       {format(new Date(s.data_hora), "d MMM yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
+                    {s.notas_checklist && (
+                      <p className="text-xs text-muted italic mt-1">{s.notas_checklist}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     {s.valor_cobrado != null && (

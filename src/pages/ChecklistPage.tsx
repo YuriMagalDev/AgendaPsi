@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CheckCircle2 } from 'lucide-react'
@@ -49,6 +49,22 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
     valor_cobrado: sessao.valor_cobrado,
   }
 
+  const [notas, setNotas] = useState(sessao.notas_checklist ?? '')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  function handleNotasChange(val: string) {
+    if (val.length > 200) return
+    setNotas(val)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(async () => {
+      await supabase.from('sessoes').update({ notas_checklist: val || null }).eq('id', sessao.id)
+    }, 500)
+  }
+
   const botoes: { status: SessaoStatus; label: string }[] = [
     { status: 'concluida', label: 'Concluída' },
     { status: 'faltou',    label: 'Faltou' },
@@ -92,6 +108,18 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
         >
           Remarcar
         </button>
+      </div>
+
+      {/* Notes */}
+      <div className="mt-3">
+        <textarea
+          value={notas}
+          onChange={e => handleNotasChange(e.target.value)}
+          placeholder="Ex: paciente pediu remarcar"
+          rows={2}
+          className="w-full px-2 py-1.5 text-xs rounded border border-border bg-bg outline-none focus:border-primary resize-none"
+        />
+        <p className="text-right text-xs text-muted mt-0.5">{notas.length}/200</p>
       </div>
 
       {mostrarPagamento && (
