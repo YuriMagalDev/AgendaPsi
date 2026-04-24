@@ -1,7 +1,14 @@
 export function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
-  // Brazilian numbers without country code: 10 digits (landline) or 11 digits (mobile)
+  // Local-only Brazilian numbers: add country code
   if (digits.length === 10 || digits.length === 11) return `55${digits}`
+  // Old 8-digit mobile (12 total with country code) — expand to 9-digit (13 total)
+  // Carriers added the 9th digit; Evolution JIDs always use the 13-digit form
+  if (digits.length === 12 && digits.startsWith('55')) {
+    const area = digits.slice(2, 4)
+    const local = digits.slice(4)
+    if (['6', '7', '8', '9'].includes(local[0])) return `55${area}9${local}`
+  }
   return digits
 }
 
