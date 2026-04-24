@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, ChevronRight, UserRound } from 'lucide-react'
+import { Plus, ChevronRight, UserRound, Upload } from 'lucide-react'
 import { usePacientes } from '@/hooks/usePacientes'
 import { PatientFilters } from '@/components/pacientes/PatientFilters'
 import { filterPacientes, DEFAULT_PACIENTE_FILTERS } from '@/lib/filterPacientes'
-import { buildCsv } from '@/lib/csv'
+import { buildCsv, parseCsv } from '@/lib/csv'
+import { ImportarPacientesModal } from '@/components/pacientes/ImportarPacientesModal'
 import type { Paciente } from '@/lib/types'
 import type { PatientCsvRow } from '@/lib/csv'
 
@@ -36,8 +37,23 @@ function PacienteCard({ paciente }: { paciente: Paciente }) {
 export function PacientesPage() {
   const { pacientes, loading, error } = usePacientes({ ativoOnly: false })
   const [filters, setFilters] = useState(DEFAULT_PACIENTE_FILTERS)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importRows, setImportRows] = useState<Record<string, string>[] | null>(null)
 
   const filtered = filterPacientes(pacientes, filters)
+
+  function handleArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const text = ev.target?.result as string
+      const rows = parseCsv(text)
+      setImportRows(rows.length > 0 ? rows : [])
+    }
+    reader.readAsText(file)
+    e.target.value = '' // reset so same file can be re-selected
+  }
 
   function exportarCsv() {
     const rows: PatientCsvRow[] = pacientes.map(p => ({
@@ -63,6 +79,20 @@ export function PacientesPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Pacientes</h1>
         <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleArquivoSelecionado}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 text-sm text-muted border border-border px-3 py-2 rounded-lg hover:bg-bg transition-colors"
+          >
+            <Upload size={14} />
+            Importar CSV
+          </button>
           <button
             onClick={exportarCsv}
             disabled={loading || pacientes.length === 0}
@@ -119,6 +149,15 @@ export function PacientesPage() {
             <PacienteCard key={p.id} paciente={p} />
           ))}
         </div>
+      )}
+
+      {importRows !== null && (
+        <ImportarPacientesModal
+          rawRows={importRows}
+          existentes={pacientes.map(p => ({ nome: p.nome, telefone: p.telefone ?? null }))}
+          onClose={() => setImportRows(null)}
+          onImportado={() => { setImportRows(null); window.location.reload() }}
+        />
       )}
     </div>
   )
