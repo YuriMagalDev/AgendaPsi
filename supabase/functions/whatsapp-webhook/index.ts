@@ -70,6 +70,18 @@ serve(async (req) => {
       .update({ status: 'confirmada' })
       .eq('id', match.sessao_id)
 
+    await fetch(
+      `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
+      {
+        method: 'POST',
+        headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          number: phone,
+          text: 'Confirmação recebida! ✅ Te esperamos na sessão. Até lá! 😊',
+        }),
+      }
+    )
+
   } else if (selectedId === 'CANCELAR') {
     await supabase.from('confirmacoes_whatsapp')
       .update({ confirmado: false, resposta: 'Cancelado', lida: false, remarcacao_solicitada: true })
