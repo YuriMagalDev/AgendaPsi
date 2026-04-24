@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, ChevronRight, UserRound } from 'lucide-react'
+import { Plus, ChevronRight, UserRound } from 'lucide-react'
 import { usePacientes } from '@/hooks/usePacientes'
+import { PatientFilters } from '@/components/pacientes/PatientFilters'
+import { filterPacientes, DEFAULT_PACIENTE_FILTERS } from '@/lib/filterPacientes'
 import type { Paciente } from '@/lib/types'
 
 function PacienteCard({ paciente }: { paciente: Paciente }) {
@@ -19,6 +21,9 @@ function PacienteCard({ paciente }: { paciente: Paciente }) {
           {paciente.telefone && (
             <p className="text-sm text-muted mt-0.5">{paciente.telefone}</p>
           )}
+          {!paciente.ativo && (
+            <span className="text-xs text-muted italic">Arquivado</span>
+          )}
         </div>
       </div>
       <ChevronRight size={16} className="text-muted shrink-0" />
@@ -27,16 +32,14 @@ function PacienteCard({ paciente }: { paciente: Paciente }) {
 }
 
 export function PacientesPage() {
-  const { pacientes, loading, error } = usePacientes()
-  const [search, setSearch] = useState('')
+  const { pacientes, loading, error } = usePacientes({ ativoOnly: false })
+  const [filters, setFilters] = useState(DEFAULT_PACIENTE_FILTERS)
 
-  const filtered = pacientes.filter(p =>
-    p.nome.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = filterPacientes(pacientes, filters)
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Pacientes</h1>
         <Link
           to="/pacientes/novo"
@@ -47,16 +50,11 @@ export function PacientesPage() {
         </Link>
       </div>
 
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Buscar paciente..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-surface text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder:text-muted"
-        />
-      </div>
+      <PatientFilters
+        filters={filters}
+        onChange={setFilters}
+        resultCount={filtered.length}
+      />
 
       {loading && (
         <div className="flex justify-center py-16">
@@ -72,9 +70,12 @@ export function PacientesPage() {
         <div className="text-center py-16">
           <UserRound size={40} className="text-border mx-auto mb-3" />
           <p className="text-muted text-sm">
-            {search ? 'Nenhum paciente encontrado.' : 'Nenhum paciente cadastrado ainda.'}
+            {filters.search || filters.modalidadeId || filters.tipoContrato
+              ? 'Nenhum paciente encontrado para os filtros selecionados.'
+              : 'Nenhum paciente cadastrado ainda.'
+            }
           </p>
-          {!search && (
+          {!filters.search && !filters.modalidadeId && !filters.tipoContrato && (
             <Link to="/pacientes/novo" className="inline-block mt-4 text-sm text-primary font-medium hover:underline">
               Cadastrar primeiro paciente
             </Link>
