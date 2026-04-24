@@ -58,6 +58,7 @@ export function ImportarPacientesModal({ rawRows, existentes, onClose, onImporta
   const [erro, setErro] = useState<string | null>(null)
 
   async function confirmarImport() {
+    if (validos.length === 0) return
     setImportando(true)
     setErro(null)
     try {

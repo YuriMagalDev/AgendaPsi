@@ -35,7 +35,7 @@ function PacienteCard({ paciente }: { paciente: Paciente }) {
 }
 
 export function PacientesPage() {
-  const { pacientes, loading, error } = usePacientes({ ativoOnly: false })
+  const { pacientes, loading, error, refetch } = usePacientes({ ativoOnly: false })
   const [filters, setFilters] = useState(DEFAULT_PACIENTE_FILTERS)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importRows, setImportRows] = useState<Record<string, string>[] | null>(null)
@@ -156,7 +156,7 @@ export function PacientesPage() {
           rawRows={importRows}
           existentes={pacientes.map(p => ({ nome: p.nome, telefone: p.telefone ?? null }))}
           onClose={() => setImportRows(null)}
-          onImportado={() => { setImportRows(null); window.location.reload() }}
+          onImportado={() => { setImportRows(null); refetch() }}
         />
       )}
     </div>

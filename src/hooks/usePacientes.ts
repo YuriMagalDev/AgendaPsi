@@ -143,5 +143,5 @@ export function usePacientes(opts?: { ativoOnly?: boolean }) {
     await fetchPacientes()
   }
 
-  return { pacientes, loading, error, createPaciente, updatePaciente, arquivarPaciente }
+  return { pacientes, loading, error, createPaciente, updatePaciente, arquivarPaciente, refetch: fetchPacientes }
 }
