@@ -27,6 +27,12 @@ interface Props {
   onUpdate: () => void
 }
 
+function toLocalISO(iso: string): string {
+  const d = new Date(iso)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
 export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
   const [remarcarAberto, setRemarcarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -39,9 +45,7 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
   )
 
   const [editando, setEditando] = useState(false)
-  const [editDataHora, setEditDataHora] = useState(
-    sessao.data_hora.slice(0, 16) // datetime-local wants "YYYY-MM-DDTHH:mm"
-  )
+  const [editDataHora, setEditDataHora] = useState(() => toLocalISO(sessao.data_hora))
   const [editDuracao, setEditDuracao] = useState(String(sessao.duracao_minutos))
   const [editValor, setEditValor] = useState(sessao.valor_cobrado != null ? String(sessao.valor_cobrado) : '')
   const [editModalidade, setEditModalidade] = useState(sessao.modalidade_sessao_id)

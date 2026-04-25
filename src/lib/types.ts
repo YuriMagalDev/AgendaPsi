@@ -33,8 +33,8 @@ export interface Paciente {
   ativo: boolean
   tipo: 'particular' | 'convenio'
   convenio_id: string | null
-  modalidade_sessao_id: string
-  meio_atendimento_id: string
+  modalidade_sessao_id: string | null
+  meio_atendimento_id: string | null
   criado_em: string
 }
 
