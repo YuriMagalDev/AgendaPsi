@@ -127,6 +127,13 @@ export function NovoPacientePage() {
 
   const algumConflito = slots.some(s => checkSlotConflict(s, allActiveSlots) !== null)
 
+  function handleInvalid(errs: Record<string, unknown>) {
+    const inStep1 = (STEP_FIELDS[1] as string[]).some(f => f in errs)
+    const inStep2 = (STEP_FIELDS[2] as string[]).some(f => f in errs)
+    if (inStep1) setStep(1)
+    else if (inStep2) setStep(2)
+  }
+
   async function handleNext() {
     const valid = await trigger(STEP_FIELDS[step])
     if (!valid) return
@@ -219,7 +226,7 @@ export function NovoPacientePage() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit(onSubmit, handleInvalid)} noValidate className="flex flex-col gap-5">
 
         {/* ─── Step 1: Dados pessoais ─── */}
         {step === 1 && (
