@@ -1,1 +1,1 @@
-alter table pacientes add column notas text;
+alter table pacientes add column if not exists notas text;
