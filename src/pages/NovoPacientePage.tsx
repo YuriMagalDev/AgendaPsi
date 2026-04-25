@@ -9,8 +9,10 @@ import { usePacientes } from '@/hooks/usePacientes'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConvenios } from '@/hooks/useConvenios'
-import type { ContratoTipo, SlotSemanalInput } from '@/lib/types'
+import { useAllActiveSlots } from '@/hooks/useAllActiveSlots'
+import { checkSlotConflict, addMinutesToTime } from '@/lib/conflictCheck'
 import { gerarSessoesParaSlot } from '@/lib/sessaoUtils'
+import type { ContratoTipo, SlotSemanalInput } from '@/lib/types'
 
 const schema = z
   .object({
@@ -18,6 +20,7 @@ const schema = z
     telefone: z.string().optional(),
     email: z.string().optional(),
     data_nascimento: z.string().optional(),
+    notas: z.string().optional(),
     tipo: z.enum(['particular', 'convenio']).default('particular'),
     convenio_id: z.string().optional(),
     modalidade_sessao_id: z.string().min(1, 'Selecione a modalidade de sessão'),
@@ -57,16 +60,20 @@ const schema = z
   })
 
 type FormData = z.infer<typeof schema>
+type Step = 1 | 2 | 3
+
+const STEP_LABELS: Record<Step, string> = { 1: 'Dados', 2: 'Sessão', 3: 'Cobrança' }
+const STEP_FIELDS: Record<Step, (keyof FormData)[]> = {
+  1: ['nome', 'email', 'convenio_id'],
+  2: ['modalidade_sessao_id', 'meio_atendimento_id'],
+  3: ['contrato_tipo', 'contrato_valor', 'contrato_qtd_sessoes', 'contrato_dia_vencimento'],
+}
 
 const DIAS = [
-  { value: 1, label: 'Segunda' },
-  { value: 2, label: 'Terça' },
-  { value: 3, label: 'Quarta' },
-  { value: 4, label: 'Quinta' },
-  { value: 5, label: 'Sexta' },
-  { value: 6, label: 'Sábado' },
-  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda' }, { value: 2, label: 'Terça' }, { value: 3, label: 'Quarta' },
+  { value: 4, label: 'Quinta' }, { value: 5, label: 'Sexta' }, { value: 6, label: 'Sábado' }, { value: 0, label: 'Domingo' },
 ]
+const DURACOES = [30, 45, 50, 60, 90]
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
@@ -76,8 +83,7 @@ function FieldError({ message }: { message?: string }) {
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <label className="text-sm font-medium text-[#1C1C1C]">
-      {children}
-      {required && <span className="text-[#E07070] ml-0.5">*</span>}
+      {children}{required && <span className="text-[#E07070] ml-0.5">*</span>}
     </label>
   )
 }
@@ -91,16 +97,15 @@ export function NovoPacientePage() {
   const { modalidadesSessao } = useModalidadesSessao()
   const { meiosAtendimento } = useMeiosAtendimento()
   const { convenios } = useConvenios()
+  const { slots: allActiveSlots } = useAllActiveSlots()
+
+  const [step, setStep] = useState<Step>(1)
   const [serverError, setServerError] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotSemanalInput[]>([])
   const [semanas, setSemanas] = useState(8)
+  const [duracaoPadrao, setDuracaoPadraoRaw] = useState(50)
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
+  const { register, handleSubmit, watch, trigger, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { tem_contrato: false, tipo: 'particular' },
   })
@@ -109,27 +114,39 @@ export function NovoPacientePage() {
   const contratoTipo = watch('contrato_tipo')
   const tipo = watch('tipo')
 
+  function setDuracaoPadrao(val: number) {
+    setDuracaoPadraoRaw(val)
+    setSlots(prev => prev.map(s => ({ ...s, duracao_minutos: val })))
+  }
+
   const adicionarSlot = () =>
-    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', is_pacote: false, intervalo_semanas: 1 }])
+    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', is_pacote: false, intervalo_semanas: 1, duracao_minutos: duracaoPadrao }])
   const removerSlot = (i: number) => setSlots(p => p.filter((_, j) => j !== i))
   const atualizarSlot = (i: number, campo: keyof SlotSemanalInput, val: unknown) =>
     setSlots(p => p.map((s, j) => j === i ? { ...s, [campo]: val } : s))
 
+  const algumConflito = slots.some(s => checkSlotConflict(s, allActiveSlots) !== null)
+
+  async function handleNext() {
+    const valid = await trigger(STEP_FIELDS[step])
+    if (!valid) return
+    if (step === 2 && algumConflito) return
+    setStep(s => (s + 1) as Step)
+  }
+
   async function onSubmit(data: FormData) {
     setServerError(null)
-
-    const slotsInvalidos = slots.some(s => !s.horario || !s.nome.trim())
-    if (slotsInvalidos) {
+    if (slots.some(s => !s.horario || !s.nome.trim())) {
       setServerError('Preencha o nome e horário em todos os horários semanais.')
       return
     }
-
     try {
       const id = await createPaciente({
         nome: data.nome,
         telefone: data.telefone || undefined,
         email: data.email || undefined,
         data_nascimento: data.data_nascimento || undefined,
+        notas: data.notas || undefined,
         tipo: data.tipo,
         convenio_id: data.tipo === 'convenio' ? data.convenio_id : undefined,
         modalidade_sessao_id: data.modalidade_sessao_id,
@@ -153,6 +170,7 @@ export function NovoPacientePage() {
             horario: s.horario,
             is_pacote: s.is_pacote,
             intervalo_semanas: s.intervalo_semanas,
+            duracao_minutos: s.duracao_minutos,
             ativo: true,
           }))
         )
@@ -173,7 +191,6 @@ export function NovoPacientePage() {
 
   return (
     <div className="p-6 max-w-lg mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link to="/pacientes" className="text-muted hover:text-[#1C1C1C] transition-colors">
           <ArrowLeft size={20} />
@@ -181,302 +198,283 @@ export function NovoPacientePage() {
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Novo paciente</h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-        {/* Dados pessoais */}
-        <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
-          <p className="text-xs font-semibold text-muted uppercase tracking-wide">Dados pessoais</p>
-
-          <div className="flex flex-col gap-1">
-            <FieldLabel required>Nome</FieldLabel>
-            <input {...register('nome')} placeholder="Nome completo" className={inputClass} />
-            <FieldError message={errors.nome?.message} />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <FieldLabel required>Tipo de atendimento</FieldLabel>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input type="radio" value="particular" {...register('tipo')} className="accent-primary" />
-                Particular
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input type="radio" value="convenio" {...register('tipo')} className="accent-primary" />
-                Convênio
-              </label>
-            </div>
-          </div>
-
-          {tipo === 'convenio' && (
-            <div className="flex flex-col gap-1">
-              <FieldLabel required>Plano de saúde</FieldLabel>
-              <select {...register('convenio_id')} className={inputClass}>
-                <option value="">Selecionar...</option>
-                {convenios.map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
-              <FieldError message={errors.convenio_id?.message} />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1">
-            <FieldLabel>WhatsApp</FieldLabel>
-            <input {...register('telefone')} placeholder="(11) 99999-9999" className={inputClass} />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <FieldLabel>E-mail</FieldLabel>
-            <input {...register('email')} type="email" placeholder="email@exemplo.com" className={inputClass} />
-            <FieldError message={errors.email?.message} />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <FieldLabel>Data de nascimento</FieldLabel>
-            <input {...register('data_nascimento')} type="date" className={inputClass} />
-          </div>
-
-          <div className="flex gap-3">
-            <div className="flex flex-col gap-1 flex-1">
-              <FieldLabel required>Modalidade de sessão</FieldLabel>
-              <select {...register('modalidade_sessao_id')} className={inputClass}>
-                <option value="">Selecionar...</option>
-                {modalidadesSessao.map(m => (
-                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
-                ))}
-              </select>
-              <FieldError message={errors.modalidade_sessao_id?.message} />
-            </div>
-            <div className="flex flex-col gap-1 flex-1">
-              <FieldLabel required>Meio de atendimento</FieldLabel>
-              <select {...register('meio_atendimento_id')} className={inputClass}>
-                <option value="">Selecionar...</option>
-                {meiosAtendimento.map(m => (
-                  <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>
-                ))}
-              </select>
-              <FieldError message={errors.meio_atendimento_id?.message} />
-            </div>
-          </div>
-        </div>
-
-        {/* Horários semanais */}
-        <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Horários semanais</p>
-            <button
-              type="button"
-              onClick={adicionarSlot}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-            >
-              <Plus size={14} />
-              Adicionar horário
-            </button>
-          </div>
-
-          {slots.length === 0 && (
-            <p className="text-sm text-muted">
-              Defina os dias e horários recorrentes do paciente. As sessões serão criadas automaticamente.
-            </p>
-          )}
-
-          {slots.map((slot, i) => (
-            <div key={i} className="flex flex-col gap-2 pb-3 border-b border-border last:border-0 last:pb-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="text"
-                  placeholder="Nome do horário (ex: Sessão semanal)"
-                  value={slot.nome}
-                  onChange={e => atualizarSlot(i, 'nome', e.target.value)}
-                  className={`${inputClass} flex-1 min-w-[160px]`}
-                />
-                <button
-                  type="button"
-                  onClick={() => removerSlot(i)}
-                  className="text-muted hover:text-[#E07070] transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+      {/* Step indicator */}
+      <div className="flex items-center mb-6">
+        {([1, 2, 3] as Step[]).map((s, i) => (
+          <div key={s} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center gap-1">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                step > s ? 'bg-primary text-white' : step === s ? 'bg-primary text-white' : 'bg-border text-muted'
+              }`}>
+                {step > s ? '✓' : s}
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={slot.dia_semana}
-                  onChange={e => atualizarSlot(i, 'dia_semana', Number(e.target.value))}
-                  className={selectClass}
-                >
-                  {DIAS.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
+              <span className={`text-xs whitespace-nowrap ${step >= s ? 'text-primary font-semibold' : 'text-muted'}`}>
+                {STEP_LABELS[s]}
+              </span>
+            </div>
+            {i < 2 && (
+              <div className={`flex-1 h-0.5 mx-2 mb-4 transition-colors ${step > s ? 'bg-primary' : 'bg-border'}`} />
+            )}
+          </div>
+        ))}
+      </div>
 
-                <input
-                  type="time"
-                  value={slot.horario}
-                  onChange={e => atualizarSlot(i, 'horario', e.target.value)}
-                  className={`${selectClass} w-28`}
-                />
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
 
-                {/* Recurrence picker */}
-                <div className="flex items-center gap-1">
-                  {[
-                    { label: 'Semanal', value: 1 },
-                    { label: 'Quinzenal', value: 2 },
-                    { label: 'Mensal', value: 4 },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => atualizarSlot(i, 'intervalo_semanas', opt.value)}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                        slot.intervalo_semanas === opt.value
-                          ? 'bg-primary text-white border-primary'
-                          : 'border-border text-[#1C1C1C] hover:border-primary'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                  <input
-                    type="number"
-                    min="1"
-                    max="52"
-                    value={slot.intervalo_semanas}
-                    onChange={e => atualizarSlot(i, 'intervalo_semanas', Math.max(1, Number(e.target.value)))}
-                    className={`${selectClass} w-16 text-center`}
-                    title="Intervalo em semanas"
-                  />
-                  <span className="text-xs text-muted">sem.</span>
-                </div>
+        {/* ─── Step 1: Dados pessoais ─── */}
+        {step === 1 && (
+          <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Dados pessoais</p>
 
-                <label className="flex items-center gap-1.5 text-sm text-[#1C1C1C] cursor-pointer whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={slot.is_pacote}
-                    onChange={e => atualizarSlot(i, 'is_pacote', e.target.checked)}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  É pacote
+            <div className="flex flex-col gap-1">
+              <FieldLabel required>Nome</FieldLabel>
+              <input {...register('nome')} placeholder="Nome completo" className={inputClass} />
+              <FieldError message={errors.nome?.message} />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FieldLabel required>Tipo de atendimento</FieldLabel>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" value="particular" {...register('tipo')} className="accent-primary" />
+                  Particular
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" value="convenio" {...register('tipo')} className="accent-primary" />
+                  Convênio
                 </label>
               </div>
             </div>
-          ))}
 
-          {slots.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-[#1C1C1C] whitespace-nowrap">Gerar para as próximas</label>
-              <input
-                type="number"
-                min="1"
-                max="52"
-                value={semanas}
-                onChange={e => setSemanas(Math.max(1, Number(e.target.value)))}
-                className={`${selectClass} w-20`}
-              />
-              <span className="text-sm text-[#1C1C1C]">semanas</span>
-            </div>
-          )}
-        </div>
-
-        {/* Cobrança */}
-        <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Cobrança</p>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                {...register('tem_contrato')}
-                className="w-4 h-4 accent-primary"
-              />
-              <span className="text-sm text-[#1C1C1C]">Definir agora</span>
-            </label>
-          </div>
-
-          {temContrato && (
-            <div className="flex flex-col gap-4">
+            {tipo === 'convenio' && (
               <div className="flex flex-col gap-1">
-                <FieldLabel>Tipo de cobrança</FieldLabel>
-                <select {...register('contrato_tipo')} className={inputClass}>
+                <FieldLabel required>Plano de saúde</FieldLabel>
+                <select {...register('convenio_id')} className={inputClass}>
                   <option value="">Selecionar...</option>
-                  <option value="por_sessao">Por sessão</option>
-                  <option value="pacote">Pacote de sessões</option>
-                  <option value="mensal">Mensal</option>
+                  {convenios.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
-                <FieldError message={errors.contrato_tipo?.message} />
+                <FieldError message={errors.convenio_id?.message} />
               </div>
+            )}
 
-              <div className="flex flex-col gap-1">
-                <FieldLabel>Valor (R$)</FieldLabel>
-                <input
-                  {...register('contrato_valor')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  className={inputClass}
-                />
-                <FieldError message={errors.contrato_valor?.message} />
-              </div>
-
-              {contratoTipo === 'pacote' && (
-                <div className="flex flex-col gap-1">
-                  <FieldLabel>Quantidade de sessões</FieldLabel>
-                  <input
-                    {...register('contrato_qtd_sessoes')}
-                    type="number"
-                    min="1"
-                    placeholder="Ex: 10"
-                    className={inputClass}
-                  />
-                  <FieldError message={errors.contrato_qtd_sessoes?.message} />
-                </div>
-              )}
-
-              {contratoTipo === 'mensal' && (
-                <div className="flex flex-col gap-1">
-                  <FieldLabel>Dia de vencimento</FieldLabel>
-                  <input
-                    {...register('contrato_dia_vencimento')}
-                    type="number"
-                    min="1"
-                    max="31"
-                    placeholder="Ex: 5"
-                    className={inputClass}
-                  />
-                  <FieldError message={errors.contrato_dia_vencimento?.message} />
-                </div>
-              )}
+            <div className="flex flex-col gap-1">
+              <FieldLabel>WhatsApp</FieldLabel>
+              <input {...register('telefone')} placeholder="(11) 99999-9999" className={inputClass} />
             </div>
-          )}
 
-          {tipo === 'convenio' && !temContrato && (
-            <p className="text-sm text-muted">
-              Pacientes de convênio geralmente não precisam de contrato — o valor é definido pelo plano.
-            </p>
-          )}
+            <div className="flex flex-col gap-1">
+              <FieldLabel>E-mail</FieldLabel>
+              <input {...register('email')} type="email" placeholder="email@exemplo.com" className={inputClass} />
+              <FieldError message={errors.email?.message} />
+            </div>
 
-          {!temContrato && tipo === 'particular' && (
-            <p className="text-sm text-muted">Você pode definir a forma de cobrança depois no perfil do paciente.</p>
-          )}
-        </div>
+            <div className="flex flex-col gap-1">
+              <FieldLabel>Data de nascimento</FieldLabel>
+              <input {...register('data_nascimento')} type="date" className={inputClass} />
+            </div>
 
-        {serverError && (
-          <p className="text-sm text-[#E07070] text-center">{serverError}</p>
+            <div className="flex flex-col gap-1">
+              <FieldLabel>Notas</FieldLabel>
+              <textarea
+                {...register('notas')}
+                placeholder="Informações adicionais sobre o paciente"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors placeholder:text-muted resize-none"
+              />
+            </div>
+          </div>
         )}
 
-        {/* Ações */}
+        {/* ─── Step 2: Sessão ─── */}
+        {step === 2 && (
+          <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Sessão</p>
+
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                <FieldLabel required>Modalidade</FieldLabel>
+                <select {...register('modalidade_sessao_id')} className={inputClass}>
+                  <option value="">Selecionar...</option>
+                  {modalidadesSessao.map(m => <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>)}
+                </select>
+                <FieldError message={errors.modalidade_sessao_id?.message} />
+              </div>
+              <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                <FieldLabel required>Meio</FieldLabel>
+                <select {...register('meio_atendimento_id')} className={inputClass}>
+                  <option value="">Selecionar...</option>
+                  {meiosAtendimento.map(m => <option key={m.id} value={m.id}>{m.emoji} {m.nome}</option>)}
+                </select>
+                <FieldError message={errors.meio_atendimento_id?.message} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <FieldLabel required>Duração</FieldLabel>
+                <select value={duracaoPadrao} onChange={e => setDuracaoPadrao(Number(e.target.value))} className={selectClass}>
+                  {DURACOES.map(d => <option key={d} value={d}>{d} min</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Horários semanais */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide">Horários semanais</p>
+                <button type="button" onClick={adicionarSlot} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors">
+                  <Plus size={14} />
+                  Adicionar horário
+                </button>
+              </div>
+
+              {slots.length === 0 && (
+                <p className="text-sm text-muted">Defina os dias e horários recorrentes. As sessões serão criadas automaticamente.</p>
+              )}
+
+              {slots.map((slot, i) => {
+                const conflito = checkSlotConflict(slot, allActiveSlots)
+                return (
+                  <div key={i} className="flex flex-col gap-2 pb-3 border-b border-border last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="text"
+                        placeholder="Nome do horário (ex: Sessão semanal)"
+                        value={slot.nome}
+                        onChange={e => atualizarSlot(i, 'nome', e.target.value)}
+                        className={`${inputClass} flex-1 min-w-[140px]`}
+                      />
+                      <button type="button" onClick={() => removerSlot(i)} className="text-muted hover:text-[#E07070] transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select value={slot.dia_semana} onChange={e => atualizarSlot(i, 'dia_semana', Number(e.target.value))} className={selectClass}>
+                        {DIAS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                      <input type="time" value={slot.horario} onChange={e => atualizarSlot(i, 'horario', e.target.value)} className={`${selectClass} w-28`} />
+                      <div className="flex items-center gap-1">
+                        {[{ label: 'Semanal', value: 1 }, { label: 'Quinzenal', value: 2 }, { label: 'Mensal', value: 4 }].map(opt => (
+                          <button
+                            key={opt.value} type="button"
+                            onClick={() => atualizarSlot(i, 'intervalo_semanas', opt.value)}
+                            className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${slot.intervalo_semanas === opt.value ? 'bg-primary text-white border-primary' : 'border-border text-[#1C1C1C] hover:border-primary'}`}
+                          >{opt.label}</button>
+                        ))}
+                        <input
+                          type="number" min="1" max="52"
+                          value={slot.intervalo_semanas}
+                          onChange={e => atualizarSlot(i, 'intervalo_semanas', Math.max(1, Number(e.target.value)))}
+                          className={`${selectClass} w-16 text-center`}
+                          title="Intervalo em semanas"
+                        />
+                        <span className="text-xs text-muted">sem.</span>
+                      </div>
+                      <label className="flex items-center gap-1.5 text-sm cursor-pointer whitespace-nowrap">
+                        <input type="checkbox" checked={slot.is_pacote} onChange={e => atualizarSlot(i, 'is_pacote', e.target.checked)} className="w-4 h-4 accent-primary" />
+                        É pacote
+                      </label>
+                    </div>
+                    {conflito ? (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                        ⚠️ Conflito: outro paciente ocupa {DIAS.find(d => d.value === conflito.dia_semana)?.label} {conflito.horario}–{addMinutesToTime(conflito.horario, conflito.duracao_minutos)} ({conflito.duracao_minutos} min)
+                      </div>
+                    ) : slot.nome ? (
+                      <div className="text-xs text-[#4CAF82]">✓ Horário disponível</div>
+                    ) : null}
+                  </div>
+                )
+              })}
+
+              {slots.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-[#1C1C1C] whitespace-nowrap">Gerar para as próximas</label>
+                  <input type="number" min="1" max="52" value={semanas} onChange={e => setSemanas(Math.max(1, Number(e.target.value)))} className={`${selectClass} w-20`} />
+                  <span className="text-sm text-[#1C1C1C]">semanas</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Step 3: Cobrança ─── */}
+        {step === 3 && (
+          <div className="bg-surface rounded-card border border-border p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted uppercase tracking-wide">Cobrança</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" {...register('tem_contrato')} className="w-4 h-4 accent-primary" />
+                <span className="text-sm text-[#1C1C1C]">Definir agora</span>
+              </label>
+            </div>
+
+            {temContrato && (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <FieldLabel>Tipo de cobrança</FieldLabel>
+                  <select {...register('contrato_tipo')} className={inputClass}>
+                    <option value="">Selecionar...</option>
+                    <option value="por_sessao">Por sessão</option>
+                    <option value="pacote">Pacote de sessões</option>
+                    <option value="mensal">Mensal</option>
+                  </select>
+                  <FieldError message={errors.contrato_tipo?.message} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <FieldLabel>Valor (R$)</FieldLabel>
+                  <input {...register('contrato_valor')} type="number" step="0.01" min="0" placeholder="0,00" className={inputClass} />
+                  <FieldError message={errors.contrato_valor?.message} />
+                </div>
+                {contratoTipo === 'pacote' && (
+                  <div className="flex flex-col gap-1">
+                    <FieldLabel>Quantidade de sessões</FieldLabel>
+                    <input {...register('contrato_qtd_sessoes')} type="number" min="1" placeholder="Ex: 10" className={inputClass} />
+                    <FieldError message={errors.contrato_qtd_sessoes?.message} />
+                  </div>
+                )}
+                {contratoTipo === 'mensal' && (
+                  <div className="flex flex-col gap-1">
+                    <FieldLabel>Dia de vencimento</FieldLabel>
+                    <input {...register('contrato_dia_vencimento')} type="number" min="1" max="31" placeholder="Ex: 5" className={inputClass} />
+                    <FieldError message={errors.contrato_dia_vencimento?.message} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tipo === 'convenio' && !temContrato && (
+              <p className="text-sm text-muted">Pacientes de convênio geralmente não precisam de contrato — o valor é definido pelo plano.</p>
+            )}
+            {!temContrato && tipo === 'particular' && (
+              <p className="text-sm text-muted">Você pode definir a forma de cobrança depois no perfil do paciente.</p>
+            )}
+          </div>
+        )}
+
+        {serverError && <p className="text-sm text-[#E07070] text-center">{serverError}</p>}
+
+        {/* Navigation */}
         <div className="flex gap-3">
-          <Link
-            to="/pacientes"
-            className="flex-1 h-10 flex items-center justify-center rounded-lg border border-border text-sm font-medium text-[#1C1C1C] hover:bg-bg transition-colors"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {isSubmitting ? 'Salvando...' : 'Salvar'}
-          </button>
+          {step > 1 ? (
+            <button type="button" onClick={() => setStep(s => (s - 1) as Step)}
+              className="flex-1 h-10 flex items-center justify-center rounded-lg border border-border text-sm font-medium text-[#1C1C1C] hover:bg-bg transition-colors">
+              ← Anterior
+            </button>
+          ) : (
+            <Link to="/pacientes" className="flex-1 h-10 flex items-center justify-center rounded-lg border border-border text-sm font-medium text-[#1C1C1C] hover:bg-bg transition-colors">
+              Cancelar
+            </Link>
+          )}
+
+          {step < 3 ? (
+            <button type="button" onClick={handleNext}
+              disabled={step === 2 && algumConflito}
+              className="flex-1 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              Próximo →
+            </button>
+          ) : (
+            <button type="submit" disabled={isSubmitting}
+              className="flex-1 h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </button>
+          )}
         </div>
       </form>
     </div>
