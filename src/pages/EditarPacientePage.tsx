@@ -483,6 +483,14 @@ export function EditarPacientePage() {
                     {DURACOES_EDIT.map(d => <option key={d} value={d}>{d} min</option>)}
                   </select>
                 </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[{ label: 'Semanal', value: 1 }, { label: 'Quinzenal', value: 2 }, { label: 'Mensal', value: 4 }].map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => setNewSlot(p => p ? { ...p, intervalo_semanas: opt.value } : null)}
+                      className={`text-xs px-2 py-1 rounded-lg border transition-colors ${newSlot.intervalo_semanas === opt.value ? 'bg-primary text-white border-primary' : 'border-border text-[#1C1C1C] hover:border-primary'}`}
+                    >{opt.label}</button>
+                  ))}
+                </div>
                 {checkSlotConflict(newSlot, allActiveSlots) && (
                   <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
                     ⚠️ Conflito: horário já ocupado por outro paciente.
