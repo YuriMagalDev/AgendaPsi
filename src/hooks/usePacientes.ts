@@ -7,6 +7,7 @@ export interface CreatePacienteInput {
   telefone?: string
   email?: string
   data_nascimento?: string
+  notas?: string
   tipo?: 'particular' | 'convenio'
   convenio_id?: string
   modalidade_sessao_id: string
@@ -24,6 +25,7 @@ export interface UpdatePacienteInput {
   telefone?: string | null
   email?: string | null
   data_nascimento?: string | null
+  notas?: string | null
   tipo?: 'particular' | 'convenio'
   convenio_id?: string | null
   modalidade_sessao_id?: string
@@ -71,6 +73,7 @@ export function usePacientes(opts?: { ativoOnly?: boolean }) {
         telefone: input.telefone ?? null,
         email: input.email ?? null,
         data_nascimento: input.data_nascimento ?? null,
+        notas: input.notas ?? null,
         tipo: input.tipo ?? 'particular',
         convenio_id: input.convenio_id ?? null,
         modalidade_sessao_id: input.modalidade_sessao_id,
@@ -109,6 +112,7 @@ export function usePacientes(opts?: { ativoOnly?: boolean }) {
     if (input.convenio_id !== undefined) patch.convenio_id = input.convenio_id
     if (input.modalidade_sessao_id !== undefined) patch.modalidade_sessao_id = input.modalidade_sessao_id
     if (input.meio_atendimento_id !== undefined) patch.meio_atendimento_id = input.meio_atendimento_id
+    if (input.notas !== undefined) patch.notas = input.notas
 
     if (Object.keys(patch).length > 0) {
       const { error } = await supabase.from('pacientes').update(patch).eq('id', id)
