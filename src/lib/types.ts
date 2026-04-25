@@ -30,6 +30,7 @@ export interface Paciente {
   telefone: string | null
   email: string | null
   data_nascimento: string | null
+  notas: string | null
   ativo: boolean
   tipo: 'particular' | 'convenio'
   convenio_id: string | null
@@ -143,6 +144,7 @@ export interface SlotSemanal {
   nome: string | null
   dia_semana: number
   horario: string
+  duracao_minutos: number
   modalidade_sessao_id: string | null
   meio_atendimento_id: string | null
   is_pacote: boolean
@@ -156,6 +158,7 @@ export interface SlotSemanalInput {
   nome: string
   dia_semana: number
   horario: string
+  duracao_minutos: number
   is_pacote: boolean
   intervalo_semanas: number
 }
