@@ -8,6 +8,7 @@ export interface SlotInput {
   horario: string
   is_pacote: boolean
   intervalo_semanas: number
+  duracao_minutos: number
 }
 
 export function gerarSessoesParaSlot(
@@ -39,7 +40,7 @@ export function gerarSessoesParaSlot(
       pago: pagoAutomatico,
       data_pagamento: pagoAutomatico ? new Date().toISOString() : null,
       sessao_origem_id: null as null,
-      duracao_minutos: 50,
+      duracao_minutos: slot.duracao_minutos,
     }
   })
 }
