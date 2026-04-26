@@ -18,7 +18,7 @@ select cron.schedule(
   $$
 );
 
--- Checklist trigger: runs at 18:30 UTC daily (adjust to match horario_checklist + 30min)
+-- Checklist trigger: runs at 21:30 UTC daily (= 18:30 BRT = horario_checklist default + 30min)
 select cron.schedule(
   'checklist-trigger',
   '30 21 * * *',
