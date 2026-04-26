@@ -79,45 +79,49 @@ serve(async (req) => {
     .select('evolution_instance_name')
     .limit(1).single()
 
-  if (selectedId === 'CONFIRMAR') {
-    await supabase.from('confirmacoes_whatsapp')
-      .update({ confirmado: true, resposta: 'Confirmado', lida: false })
-      .eq('id', match.id)
-    await supabase.from('sessoes')
-      .update({ status: 'confirmada' })
-      .eq('id', match.sessao_id)
+  const isCancelar = selectedId === 'CANCELAR'
+  const isConfirmar = selectedId === 'CONFIRMAR'
 
-    const r = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
-      {
-        method: 'POST',
-        headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          number: phone,
-          text: 'Confirmação recebida! ✅ Te esperamos na sessão. Até lá! 😊',
-        }),
-      }
-    )
-    console.log(`Evolution CONFIRMAR send [${r.status}]: ${await r.text()}`)
-
-  } else if (selectedId === 'CANCELAR') {
-    await supabase.from('confirmacoes_whatsapp')
-      .update({ confirmado: false, resposta: 'Cancelado', lida: false, remarcacao_solicitada: true })
-      .eq('id', match.id)
-
-    const r = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
-      {
-        method: 'POST',
-        headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          number: phone,
-          text: 'Entendido! 🙏 Gostaria de remarcar sua sessão? Se sim, entre em contato conosco para escolher um novo horário.',
-        }),
-      }
-    )
-    console.log(`Evolution CANCELAR send [${r.status}]: ${await r.text()}`)
+  // Determine tipo for notification bell
+  let tipo: string
+  if (isConfirmar) {
+    tipo = 'confirmacao'
+  } else {
+    // Check if session was previously confirmada — if so this is a post-confirm cancel
+    const sessaoStatus = (match.sessoes as any)?.status ?? ''
+    tipo = sessaoStatus === 'confirmada' ? 'cancelamento_pos_confirmacao' : 'cancelamento'
   }
+
+  // Update confirmacao row with response + tipo
+  await supabase.from('confirmacoes_whatsapp')
+    .update({
+      confirmado: isConfirmar,
+      resposta: isConfirmar ? 'Confirmado' : 'Cancelado',
+      lida: false,
+      tipo,
+    })
+    .eq('id', match.id)
+
+  // Update session status
+  const newStatus = isConfirmar ? 'confirmada' : 'cancelada'
+  await supabase.from('sessoes')
+    .update({ status: newStatus })
+    .eq('id', match.sessao_id)
+
+  // Send acknowledgement via WhatsApp
+  const replyText = isConfirmar
+    ? 'Confirmação recebida! ✅ Te esperamos na sessão. Até lá! 😊'
+    : 'Entendido! 🙏 Sessão cancelada. Entre em contato se quiser remarcar.'
+
+  const r = await fetch(
+    `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
+    {
+      method: 'POST',
+      headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: phone, text: replyText }),
+    }
+  )
+  console.log(`Evolution ${selectedId} send [${r.status}]: ${await r.text()}`)
 
   return new Response('ok')
 })
