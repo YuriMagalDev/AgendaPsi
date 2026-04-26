@@ -97,7 +97,13 @@ export interface RepasseMensal {
   data_pagamento: string | null
 }
 
-export type TipoLembrete = '48h' | '24h' | '2h'
+export type TipoLembrete = '48h' | '24h' | '2h' | 'lembrete_noite' | 'lembrete_manha'
+
+export type TipoNotificacao =
+  | 'confirmacao'
+  | 'cancelamento'
+  | 'cancelamento_pos_confirmacao'
+  | 'alerta_sem_resposta'
 
 export interface ConfirmacaoWhatsapp {
   id: string
@@ -108,6 +114,7 @@ export interface ConfirmacaoWhatsapp {
   lida: boolean
   tipo_lembrete: TipoLembrete | null
   remarcacao_solicitada: boolean
+  tipo: TipoNotificacao | null
 }
 
 export type NotificacaoConfirmacao = ConfirmacaoWhatsapp & {
@@ -125,6 +132,8 @@ export interface ConfigPsicologo {
   horario_inicio: string | null
   horario_fim: string | null
   horario_checklist: string | null
+  horario_lembrete_1: string | null
+  horario_lembrete_2: string | null
   automacao_whatsapp_ativa: boolean
   evolution_instance_name: string | null
   evolution_token: string | null
