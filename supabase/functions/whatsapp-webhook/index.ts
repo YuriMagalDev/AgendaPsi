@@ -99,6 +99,7 @@ serve(async (req) => {
       resposta: isConfirmar ? 'Confirmado' : 'Cancelado',
       lida: false,
       tipo,
+      ...(isCancelar && { remarcacao_solicitada: true }),
     })
     .eq('id', match.id)
 
