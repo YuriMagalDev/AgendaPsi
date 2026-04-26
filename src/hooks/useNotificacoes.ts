@@ -11,7 +11,7 @@ export function useNotificacoes() {
     const { data, error: err } = await supabase
       .from('confirmacoes_whatsapp')
       .select('*, sessoes(data_hora, paciente_id, avulso_nome, pacientes(nome))')
-      .not('confirmado', 'is', null)
+      .not('tipo', 'is', null)
       .eq('lida', false)
       .order('mensagem_enviada_em', { ascending: false })
 

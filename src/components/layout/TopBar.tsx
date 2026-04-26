@@ -64,13 +64,35 @@ export function TopBar() {
                     <div key={n.id} className="px-4 py-3">
                       <p className="text-sm font-medium text-[#1C1C1C]">{nomePaciente}</p>
                       <p className="text-xs text-muted mt-0.5">{dataHora}</p>
-                      <p
-                        className={`text-xs mt-1 font-medium ${
-                          n.confirmado ? 'text-[#4CAF82]' : 'text-[#E07070]'
-                        }`}
-                      >
-                        {n.confirmado ? 'Confirmou a sessão' : 'Cancelou a sessão'}
-                      </p>
+                      {(() => {
+                        switch (n.tipo) {
+                          case 'confirmacao':
+                            return (
+                              <p className="text-xs mt-1 font-medium text-[#4CAF82]">
+                                Confirmou a sessão
+                              </p>
+                            )
+                          case 'cancelamento':
+                          case 'cancelamento_pos_confirmacao':
+                            return (
+                              <p className="text-xs mt-1 font-medium text-[#E07070]">
+                                Cancelou a sessão
+                              </p>
+                            )
+                          case 'alerta_sem_resposta': {
+                            const hora = n.sessoes?.data_hora
+                              ? format(new Date(n.sessoes.data_hora), 'HH:mm', { locale: ptBR })
+                              : ''
+                            return (
+                              <p className="text-xs mt-1 font-medium text-[#C17F59]">
+                                Não confirmou a sessão das {hora}
+                              </p>
+                            )
+                          }
+                          default:
+                            return null
+                        }
+                      })()}
                       {n.remarcacao_solicitada && (
                         <p className="text-xs font-medium text-[#9B7EC8] mt-0.5">Solicitou remarcação</p>
                       )}
