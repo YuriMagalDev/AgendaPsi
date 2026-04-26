@@ -63,7 +63,9 @@ export function TopBar() {
                   return (
                     <div key={n.id} className="px-4 py-3">
                       <p className="text-sm font-medium text-[#1C1C1C]">{nomePaciente}</p>
-                      <p className="text-xs text-muted mt-0.5">{dataHora}</p>
+                      {n.tipo !== 'alerta_sem_resposta' && (
+                        <p className="text-xs text-muted mt-0.5">{dataHora}</p>
+                      )}
                       {(() => {
                         switch (n.tipo) {
                           case 'confirmacao':
