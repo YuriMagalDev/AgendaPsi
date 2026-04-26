@@ -26,8 +26,8 @@ alter table config_psicologo
   add column if not exists horario_lembrete_1 time not null default '18:00',
   add column if not exists horario_lembrete_2 time not null default '07:00';
 
--- 4. Unique constraint: one alerta_sem_resposta per session per day
---    Uses partial index — only one NULL-tipo_lembrete row allowed per session with tipo='alerta_sem_resposta'
+-- 4. Unique constraint: one alerta_sem_resposta per session
+--    Uses partial index — at most one alerta_sem_resposta row per session
 create unique index if not exists idx_confirmacoes_alerta_sem_resposta
   on confirmacoes_whatsapp (sessao_id)
   where tipo = 'alerta_sem_resposta';
