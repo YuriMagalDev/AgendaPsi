@@ -18,7 +18,7 @@ serve(async (req) => {
 
   const { sessao_id, tipo, test } = await req.json() as {
     sessao_id: string
-    tipo: '48h' | '24h' | '2h'
+    tipo: 'lembrete_noite' | 'lembrete_manha'
     test?: boolean
   }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
@@ -59,10 +59,9 @@ serve(async (req) => {
   const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   const diaSemana = dataHora.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
   const descricao = buildReminderText(tipo, nome, hora, diaSemana)
-  const opcoes = '\n\n👉 *Responda esta mensagem com:*\n*SIM* ou *1* — para confirmar sua presença ✅\n*NÃO* ou *2* — para cancelar ❌'
   const texto = test
-    ? `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}${opcoes}`
-    : `${descricao}${opcoes}`
+    ? `🧪 *TESTE — este é um lembrete de teste*\n\n${descricao}`
+    : descricao
 
   const instance = config.evolution_instance_name
   const diag: Record<string, unknown> = {
