@@ -199,11 +199,13 @@ export function ChecklistPage() {
 
   useEffect(() => {
     async function fetchAlertas() {
-      const { data } = await supabase
+      const { data, error: alertaError } = await supabase
         .from('confirmacoes_whatsapp')
         .select('sessao_id')
         .eq('tipo', 'alerta_sem_resposta')
         .gte('mensagem_enviada_em', `${TODAY}T00:00:00`)
+        .lte('mensagem_enviada_em', `${TODAY}T23:59:59`)
+      if (alertaError) console.error('fetchAlertas:', alertaError.message)
       setSessoesComAlerta(new Set((data ?? []).map((r: any) => r.sessao_id)))
     }
     fetchAlertas()
@@ -212,10 +214,10 @@ export function ChecklistPage() {
   const pendentes = sessoes.filter(s => s.status === 'agendada' || s.status === 'confirmada')
 
   useEffect(() => {
-    if (!loading && pendentes.length === 0 && sessoes.length > 0) {
-      setChecklistConcluido(true)
+    if (!loading) {
+      setChecklistConcluido(pendentes.length === 0 && sessoes.length > 0)
     }
-  }, [loading, pendentes.length, sessoes.length])
+  }, [loading, pendentes.length])
 
   const totalAlteracoes = updates.length + pagamentos.filter(p => p.pago).length
 
@@ -281,10 +283,6 @@ export function ChecklistPage() {
     setUpdates([])
     setPagamentos([])
     await refetch()
-    const pendentesPos = sessoes.filter(s =>
-      s.status === 'agendada' || s.status === 'confirmada'
-    )
-    if (pendentesPos.length === 0) setChecklistConcluido(true)
     setSalvando(false)
   }
 
@@ -328,10 +326,13 @@ export function ChecklistPage() {
                 {(['concluida', 'faltou', 'cancelada', 'remarcada'] as const).map(status => {
                   const count = sessoes.filter(s => s.status === status).length
                   if (count === 0) return null
+                  const labels: Record<string, string> = {
+                    concluida: 'concluída', faltou: 'faltou', cancelada: 'cancelada', remarcada: 'remarcada',
+                  }
                   return (
                     <span key={status} className="text-xs px-3 py-1 rounded-full"
                       style={{ background: `${getStatusColor(status)}18`, color: getStatusColor(status) }}>
-                      {count} {status}
+                      {count} {labels[status]}
                     </span>
                   )
                 })}
