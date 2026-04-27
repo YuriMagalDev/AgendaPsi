@@ -31,7 +31,7 @@ export function ConfiguracoesPage() {
   const [emojiMeioAtendimento, setEmojiMeioAtendimento] = useState('')
 
   // Config state
-  const [configForm, setConfigForm] = useState({ nome: '', horario_inicio: '', horario_fim: '' })
+  const [configForm, setConfigForm] = useState({ nome: '', horario_inicio: '', horario_fim: '', horario_lembrete_1: '', horario_lembrete_2: '' })
   const [configSynced, setConfigSynced] = useState(false)
   const [salvandoConfig, setSalvandoConfig] = useState(false)
 
@@ -40,7 +40,7 @@ export function ConfiguracoesPage() {
   const [pollingStatus, setPollingStatus] = useState(false)
   const [pollingAttempts, setPollingAttempts] = useState(0)
   const [conectando, setConectando] = useState(false)
-  const [testando, setTestando] = useState<'48h' | '24h' | '2h' | null>(null)
+  const [testando, setTestando] = useState<'lembrete_noite' | 'lembrete_manha' | null>(null)
   const [sessaoTesteId, setSessaoTesteId] = useState<string>('')
   const [sessoesDisponiveis, setSessoesDisponiveis] = useState<Array<{ id: string; label: string }>>([])
 
@@ -49,6 +49,8 @@ export function ConfiguracoesPage() {
       nome: config.nome ?? '',
       horario_inicio: config.horario_inicio ?? '07:00',
       horario_fim: config.horario_fim ?? '21:00',
+      horario_lembrete_1: (config as any).horario_lembrete_1 ?? '',
+      horario_lembrete_2: (config as any).horario_lembrete_2 ?? '',
     })
     setConfigSynced(true)
   }
@@ -152,7 +154,7 @@ export function ConfiguracoesPage() {
     setQrBase64(null)
   }
 
-  async function triggerTest(tipo: '48h' | '24h' | '2h') {
+  async function triggerTest(tipo: 'lembrete_noite' | 'lembrete_manha') {
     if (!sessaoTesteId) return toast.error('Selecione uma sessão')
     setTestando(tipo)
     try {
@@ -204,6 +206,8 @@ export function ConfiguracoesPage() {
         nome: configForm.nome || null,
         horario_inicio: configForm.horario_inicio || null,
         horario_fim: configForm.horario_fim || null,
+        horario_lembrete_1: configForm.horario_lembrete_1 || null,
+        horario_lembrete_2: configForm.horario_lembrete_2 || null,
       } as any)
     } finally {
       setSalvandoConfig(false)
@@ -527,6 +531,39 @@ export function ConfiguracoesPage() {
               </label>
             </div>
 
+            {/* Horário dos lembretes */}
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-medium text-[#1C1C1C] mb-3">Horário dos lembretes</p>
+              <div className="flex gap-3">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs text-muted">1º lembrete (noite anterior)</label>
+                  <input
+                    type="time"
+                    value={configForm.horario_lembrete_1}
+                    onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_1: e.target.value }))}
+                    className={`${inputClass} w-full`}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs text-muted">2º lembrete (manhã do dia)</label>
+                  <input
+                    type="time"
+                    value={configForm.horario_lembrete_2}
+                    onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_2: e.target.value }))}
+                    className={`${inputClass} w-full`}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSaveConfig({ preventDefault: () => {} } as any)}
+                disabled={salvandoConfig}
+                className="mt-2 self-end h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
+              >
+                {salvandoConfig ? 'Salvando...' : 'Salvar horários'}
+              </button>
+            </div>
+
             {/* Test section */}
             <div className="border-t border-border pt-4 space-y-3">
               <p className="text-sm font-medium text-[#1C1C1C]">Testar lembretes</p>
@@ -540,14 +577,14 @@ export function ConfiguracoesPage() {
                 {sessoesDisponiveis.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
               <div className="flex gap-2">
-                {(['48h', '24h', '2h'] as const).map(tipo => (
+                {(['lembrete_noite', 'lembrete_manha'] as const).map(tipo => (
                   <button
                     key={tipo}
                     onClick={() => triggerTest(tipo)}
                     disabled={testando !== null}
                     className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors disabled:opacity-50"
                   >
-                    {testando === tipo ? '...' : `Teste ${tipo}`}
+                    {testando === tipo ? '...' : tipo === 'lembrete_noite' ? 'Teste noite' : 'Teste manhã'}
                   </button>
                 ))}
               </div>
