@@ -27,7 +27,7 @@ function getStatusColor(s: SessaoStatus): string {
   return map[s]
 }
 
-function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onRemarcar, disabled }: {
+function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onRemarcar, disabled, semConfirmacao }: {
   sessao: SessaoView
   update: StatusUpdate | undefined
   pagamento: PagamentoUpdate | undefined
@@ -35,6 +35,7 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
   onPagamento: (p: PagamentoUpdate) => void
   onRemarcar: () => void
   disabled?: boolean
+  semConfirmacao?: boolean
 }) {
   const novoStatus = update?.status
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
@@ -79,12 +80,19 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
           <p className="text-sm font-medium text-[#1C1C1C]">{nomePaciente}</p>
           <p className="text-xs text-muted">{horario} · {sessao.modalidades_sessao?.nome}</p>
         </div>
-        {novoStatus && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: `${getStatusColor(novoStatus)}20`, color: getStatusColor(novoStatus) }}>
-            {novoStatus.charAt(0).toUpperCase() + novoStatus.slice(1)}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {semConfirmacao && !novoStatus && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#C17F59]/10 text-[#C17F59]">
+              Não confirmou
+            </span>
+          )}
+          {novoStatus && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${getStatusColor(novoStatus)}20`, color: getStatusColor(novoStatus) }}>
+              {novoStatus.charAt(0).toUpperCase() + novoStatus.slice(1)}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {botoes.map(({ status, label }) => (
@@ -186,8 +194,29 @@ export function ChecklistPage() {
   const [remarcarSessao, setRemarcarSessao] = useState<SessaoView | null>(null)
   const [salvandoRemarcar, setSalvandoRemarcar] = useState(false)
   const [erroRemarcar, setErroRemarcar] = useState<string | null>(null)
+  const [sessoesComAlerta, setSessoesComAlerta] = useState<Set<string>>(new Set())
+  const [checklistConcluido, setChecklistConcluido] = useState(false)
+
+  useEffect(() => {
+    async function fetchAlertas() {
+      const { data } = await supabase
+        .from('confirmacoes_whatsapp')
+        .select('sessao_id')
+        .eq('tipo', 'alerta_sem_resposta')
+        .gte('mensagem_enviada_em', `${TODAY}T00:00:00`)
+      setSessoesComAlerta(new Set((data ?? []).map((r: any) => r.sessao_id)))
+    }
+    fetchAlertas()
+  }, [])
 
   const pendentes = sessoes.filter(s => s.status === 'agendada' || s.status === 'confirmada')
+
+  useEffect(() => {
+    if (!loading && pendentes.length === 0 && sessoes.length > 0) {
+      setChecklistConcluido(true)
+    }
+  }, [loading, pendentes.length, sessoes.length])
+
   const totalAlteracoes = updates.length + pagamentos.filter(p => p.pago).length
 
   function handleUpdate(u: StatusUpdate) {
@@ -252,6 +281,10 @@ export function ChecklistPage() {
     setUpdates([])
     setPagamentos([])
     await refetch()
+    const pendentesPos = sessoes.filter(s =>
+      s.status === 'agendada' || s.status === 'confirmada'
+    )
+    if (pendentesPos.length === 0) setChecklistConcluido(true)
     setSalvando(false)
   }
 
@@ -284,9 +317,32 @@ export function ChecklistPage() {
       {error && <p className="text-center py-8 text-sm text-[#E07070]">Erro ao carregar sessões.</p>}
 
       {!loading && !error && pendentes.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-muted text-sm">Nenhuma sessão pendente hoje.</p>
-        </div>
+        checklistConcluido ? (
+          <div className="text-center py-16 flex flex-col items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-[#4CAF82]/10 flex items-center justify-center">
+              <CheckCircle2 size={28} className="text-[#4CAF82]" />
+            </div>
+            <p className="font-display text-lg font-semibold text-[#1C1C1C]">Dia concluído</p>
+            {sessoes.length > 0 && (
+              <div className="flex gap-3 flex-wrap justify-center mt-1">
+                {(['concluida', 'faltou', 'cancelada', 'remarcada'] as const).map(status => {
+                  const count = sessoes.filter(s => s.status === status).length
+                  if (count === 0) return null
+                  return (
+                    <span key={status} className="text-xs px-3 py-1 rounded-full"
+                      style={{ background: `${getStatusColor(status)}18`, color: getStatusColor(status) }}>
+                      {count} {status}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-muted text-sm">Nenhuma sessão pendente hoje.</p>
+          </div>
+        )
       )}
 
       {!loading && !error && pendentes.length > 0 && (
@@ -301,6 +357,7 @@ export function ChecklistPage() {
               onPagamento={handlePagamento}
               onRemarcar={() => setRemarcarSessao(s)}
               disabled={salvandoRemarcar}
+              semConfirmacao={sessoesComAlerta.has(s.id)}
             />
           ))}
         </div>
