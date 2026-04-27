@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, Kanban, Users, BarChart2, Settings, ClipboardList } from 'lucide-react'
+import { Calendar, Kanban, Users, Settings, ClipboardList } from 'lucide-react'
 import { useChecklistBadge } from '@/hooks/useChecklistBadge'
 
 const staticNavItems = [

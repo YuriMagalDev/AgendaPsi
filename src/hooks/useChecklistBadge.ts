@@ -17,10 +17,11 @@ export function useChecklistBadge() {
 
       const horario = configData?.horario_checklist ?? '18:00'
       const [h, m] = horario.split(':').map(Number)
-      const checklistTime = new Date()
+      const now = new Date()
+      const checklistTime = new Date(now)
       checklistTime.setHours(h, m, 0, 0)
 
-      if (new Date() < checklistTime) {
+      if (now < checklistTime) {
         setHasPending(false)
         setLoading(false)
         return
