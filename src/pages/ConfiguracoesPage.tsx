@@ -49,8 +49,8 @@ export function ConfiguracoesPage() {
       nome: config.nome ?? '',
       horario_inicio: config.horario_inicio ?? '07:00',
       horario_fim: config.horario_fim ?? '21:00',
-      horario_lembrete_1: (config as any).horario_lembrete_1 ?? '',
-      horario_lembrete_2: (config as any).horario_lembrete_2 ?? '',
+      horario_lembrete_1: config.horario_lembrete_1 ?? '18:00',
+      horario_lembrete_2: config.horario_lembrete_2 ?? '07:00',
     })
     setConfigSynced(true)
   }
@@ -208,7 +208,7 @@ export function ConfiguracoesPage() {
         horario_fim: configForm.horario_fim || null,
         horario_lembrete_1: configForm.horario_lembrete_1 || null,
         horario_lembrete_2: configForm.horario_lembrete_2 || null,
-      } as any)
+      })
     } finally {
       setSalvandoConfig(false)
     }
@@ -554,14 +554,16 @@ export function ConfiguracoesPage() {
                   />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleSaveConfig({ preventDefault: () => {} } as any)}
-                disabled={salvandoConfig}
-                className="mt-2 self-end h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
-              >
-                {salvandoConfig ? 'Salvando...' : 'Salvar horários'}
-              </button>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveConfig({ preventDefault: () => {} } as any)}
+                  disabled={salvandoConfig}
+                  className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
+                >
+                  {salvandoConfig ? 'Salvando...' : 'Salvar horários'}
+                </button>
+              </div>
             </div>
 
             {/* Test section */}
