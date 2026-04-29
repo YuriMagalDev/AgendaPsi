@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, Kanban, Users, Settings, ClipboardList } from 'lucide-react'
+import { Calendar, Kanban, Settings, ClipboardList, Wallet } from 'lucide-react'
 import { useChecklistBadge } from '@/hooks/useChecklistBadge'
 
 const staticNavItems = [
   { to: '/agenda',        icon: Calendar,       label: 'Agenda'     },
   { to: '/kanban',        icon: Kanban,          label: 'Kanban'     },
   { to: '/checklist',     icon: ClipboardList,   label: 'Checklist'  },
-  { to: '/pacientes',     icon: Users,           label: 'Pacientes'  },
+  { to: '/cobranca',      icon: Wallet,          label: 'Cobrança'   },
   { to: '/configuracoes', icon: Settings,        label: 'Config.'    },
 ] as const
 
