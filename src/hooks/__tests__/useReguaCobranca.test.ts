@@ -65,11 +65,14 @@ describe('useReguaCobranca', () => {
   })
 
   it('cancelarCobranca calls update with status=cancelado', async () => {
-    const chain = makeChain({ data: null, error: null })
-    const chain2 = makeChain({ data: [], error: null })
+    const updateChain: Record<string, unknown> = {}
+    updateChain.update = vi.fn().mockReturnValue(updateChain)
+    updateChain.eq     = vi.fn().mockResolvedValue({ data: null, error: null })
+
+    const refetchChain = makeChain({ data: [], error: null })
     mockFrom
-      .mockReturnValueOnce(chain)
-      .mockReturnValue(chain2)
+      .mockReturnValueOnce(updateChain)
+      .mockReturnValue(refetchChain)
 
     const { result } = renderHook(() => useReguaCobranca())
     await act(async () => { await result.current.cancelarCobranca('cob-1') })
