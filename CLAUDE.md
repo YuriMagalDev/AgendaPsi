@@ -150,3 +150,39 @@ This applies to all pages, components, and subagent implementations. If a plan o
 - TailwindCSS for styles — no CSS modules or styled-components
 - File names: kebab-case for components and pages
 - Environment variables: never commit `.env` — use `.env.example` as a reference
+
+---
+
+## Pending Deployment Plans
+
+There are 4 implementation plans queued for execution (in order):
+
+1. `docs/superpowers/plans/2026-04-27-multi-tenant.md` — RLS isolation, user_id columns, signup trigger, edge function updates
+2. `docs/superpowers/plans/2026-04-27-subscriptions.md` — assinaturas table, useAssinatura hook
+3. `docs/superpowers/plans/2026-04-27-feature-gating.md` — PlanoPage, trial banner, WhatsApp/Realtime gating
+4. `docs/superpowers/plans/2026-04-27-stripe.md` — Stripe Checkout, Webhook, Portal edge functions
+
+Master reference: `docs/superpowers/plans/EXECUCAO.md`
+
+**IMPORTANT:** If any work touches files listed below, alert the user that the relevant plan(s) may need updating before execution:
+
+| File / Area | Affects Plan |
+|---|---|
+| `supabase/migrations/*.sql` (any new migration) | Plan 1 (migration number 017 may shift) |
+| `supabase/functions/send-lembrete/index.ts` | Plans 1 and 3 |
+| `supabase/functions/cron-lembretes/index.ts` | Plan 1 |
+| `supabase/functions/whatsapp-webhook/index.ts` | Plan 1 |
+| `supabase/functions/whatsapp-setup/index.ts` | Plans 1 and 3 |
+| `src/pages/OnboardingPage.tsx` | Plan 1 |
+| `src/components/ProtectedRoute.tsx` | Plan 1 |
+| `src/pages/LoginPage.tsx` | Plan 1 |
+| `src/lib/types.ts` | Plans 1 and 2 |
+| `src/pages/ConfiguracoesPage.tsx` | Plan 3 |
+| `src/pages/KanbanPage.tsx` | Plan 3 |
+| `src/components/layout/AppLayout.tsx` | Plan 3 |
+| `src/components/layout/Sidebar.tsx` | Plan 3 |
+| `src/components/layout/BottomNav.tsx` | Plan 3 |
+| `src/router.tsx` | Plan 3 |
+| `src/hooks/useAssinatura.ts` (new file) | Plan 2 |
+| `src/pages/PlanoPage.tsx` (new file) | Plans 3 and 4 |
+| Any new Supabase table | Plan 1 (may need user_id + RLS added to that table too) |

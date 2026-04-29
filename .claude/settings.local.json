@@ -50,7 +50,25 @@
       "Bash(node -e \"const bu = require\\('@base-ui/react'\\); console.log\\(Object.keys\\(bu\\)\\)\")",
       "Bash(node *)",
       "Read(//c/Users/yurig/.claude/plugins/**)",
-      "Read(//c/Users/yurig/.claude/plugins/cache/**)"
+      "Read(//c/Users/yurig/.claude/plugins/cache/**)",
+      "Bash(supabase secrets *)",
+      "Bash(supabase --version)",
+      "Bash(supabase db *)",
+      "Bash(railway variables *)",
+      "Bash(python -m json.tool)",
+      "Bash(supabase functions *)",
+      "Bash(curl *)",
+      "Bash(supabase status *)",
+      "Bash(supabase projects *)",
+      "Bash(npm test *)",
+      "Bash(bash .claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh --project-dir \"C:\\\\Users\\\\yurig\\\\Documents\\\\Antigravity\\\\Psicologo\")",
+      "Bash(bash *)",
+      "Bash(scripts/start-server.sh *)",
+      "Bash(C:/Users/yurig/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh *)",
+      "Bash(xargs cat *)",
+      "PowerShell(deno --version)",
+      "Bash(where deno *)",
+      "WebSearch"
     ]
   }
 }
