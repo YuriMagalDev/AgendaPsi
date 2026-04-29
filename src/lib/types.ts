@@ -126,6 +126,8 @@ export type NotificacaoConfirmacao = ConfirmacaoWhatsapp & {
   } | null
 }
 
+export type ModoCobracaWhatsapp = 'auto' | 'manual'
+
 export interface ConfigPsicologo {
   id: string
   nome: string | null
@@ -139,6 +141,10 @@ export interface ConfigPsicologo {
   evolution_token: string | null
   whatsapp_conectado: boolean
   user_id: string | null
+  // Régua de Cobrança fields (added in migration 019)
+  chave_pix: string | null
+  regua_cobranca_ativa: boolean
+  regua_cobranca_modo: ModoCobracaWhatsapp
 }
 
 export type SessaoView = Sessao & {
@@ -193,4 +199,62 @@ export type PacienteComConvenio = Paciente & {
   modalidades_sessao?: { nome: string; emoji: string } | null
   meios_atendimento?:  { nome: string; emoji: string } | null
   contratos?: { tipo: ContratoTipo; ativo: boolean }[] | null
+}
+
+// ============================================================
+// Régua de Cobrança
+// ============================================================
+
+export type EtapaCobranca = 1 | 2 | 3
+
+export type StatusCobranca = 'pendente' | 'agendado' | 'enviado' | 'falha' | 'cancelado'
+
+export interface RegraCobranca {
+  id: string
+  user_id: string
+  etapa: EtapaCobranca
+  dias_apos: number
+  template_mensagem: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CobrancaEnviada {
+  id: string
+  user_id: string
+  sessao_id: string
+  etapa: EtapaCobranca
+  status: StatusCobranca
+  mensagem_texto: string
+  data_agendado: string
+  data_enviado: string | null
+  erro_detalhes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CobrancaEnviadaView extends CobrancaEnviada {
+  sessoes: {
+    data_hora: string
+    valor_cobrado: number | null
+    pago: boolean
+    status: SessaoStatus
+    paciente_id: string | null
+    avulso_nome: string | null
+    pacientes: { nome: string; telefone: string | null } | null
+  } | null
+}
+
+export interface SessaoParaCobranca {
+  id: string
+  data_hora: string
+  valor_cobrado: number
+  pago: boolean
+  status: SessaoStatus
+  paciente_id: string | null
+  avulso_nome: string | null
+  avulso_telefone: string | null
+  pacientes: { nome: string; telefone: string | null } | null
+  etapas_pendentes: EtapaCobranca[]
 }
