@@ -58,6 +58,9 @@ create index if not exists idx_cobracas_enviadas_sessao_id    on cobracas_enviad
 create index if not exists idx_cobracas_enviadas_status       on cobracas_enviadas(status);
 create index if not exists idx_cobracas_enviadas_data_agendado on cobracas_enviadas(data_agendado);
 
+alter table cobracas_enviadas
+  add constraint uq_cobracas_sessao_etapa unique (sessao_id, etapa);
+
 create or replace function cobracas_enviadas_set_updated_at()
 returns trigger language plpgsql as $$
 begin
