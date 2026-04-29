@@ -6,6 +6,9 @@ import { useConvenios } from '@/hooks/useConvenios'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
+import { useReguaCobranca } from '@/hooks/useReguaCobranca'
+import { ReguaCobrancaTemplateEditor } from '@/components/regua-cobranca/ReguaCobrancaTemplateEditor'
+import type { EtapaCobranca, ModoCobracaWhatsapp } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -16,6 +19,16 @@ export function ConfiguracoesPage() {
   const { modalidadesSessao, loading: loadingModalidadesSessao, addModalidadeSessao, toggleAtivo: toggleModalidadeSessao } = useModalidadesSessao()
   const { meiosAtendimento, loading: loadingMeiosAtendimento, addMeioAtendimento, toggleAtivo: toggleMeioAtendimento } = useMeiosAtendimento()
   const { config, loading: loadingConfig, updateConfig, refetch: refetchConfig } = useConfigPsicologo()
+
+  const {
+    regras,
+    loading: loadingRegras,
+    fetchRegras,
+    salvarRegra,
+    deletarRegra,
+  } = useReguaCobranca()
+
+  useEffect(() => { fetchRegras() }, [])
 
   // Convênios state
   const [nomeConvenio, setNomeConvenio] = useState('')
@@ -594,6 +607,126 @@ export function ConfiguracoesPage() {
           </div>
         )}
       </div>
+
+      {/* ── Régua de Cobrança ───────────────────────────── */}
+      <section className="mb-8">
+        <h2 className="text-lg font-display font-semibold text-[#1C1C1C] mb-4">
+          Régua de Cobrança
+        </h2>
+
+        {/* Master toggle */}
+        <div className="bg-white rounded-xl border border-[#E4E0DA] p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#1C1C1C]">
+                Ativar lembretes automáticos de cobrança
+              </p>
+              <p className="text-xs text-[#7A7A7A] mt-0.5">
+                Envia mensagens WhatsApp para sessões com pagamento pendente
+              </p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={config?.regua_cobranca_ativa ?? false}
+              onClick={() =>
+                config && updateConfig({ regua_cobranca_ativa: !(config.regua_cobranca_ativa ?? false) })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                config?.regua_cobranca_ativa ? 'bg-[#2D6A6A]' : 'bg-[#E4E0DA]'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  config?.regua_cobranca_ativa ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {config?.regua_cobranca_ativa && (
+          <>
+            {/* PIX Key */}
+            <div className="bg-white rounded-xl border border-[#E4E0DA] p-4 mb-4">
+              <label className="block text-sm font-semibold text-[#1C1C1C] mb-2">
+                Chave PIX
+              </label>
+              <input
+                type="text"
+                value={config.chave_pix ?? ''}
+                onChange={(e) => updateConfig({ chave_pix: e.target.value || null })}
+                placeholder="email, CPF, telefone ou chave aleatória"
+                className={`${inputClass} w-full`}
+              />
+              <p className="text-xs text-[#7A7A7A] mt-1">
+                Incluída automaticamente nas mensagens como <code className="bg-[#F7F5F2] px-1 rounded">{'{{chave_pix}}'}</code>
+              </p>
+            </div>
+
+            {/* Send mode */}
+            <div className="bg-white rounded-xl border border-[#E4E0DA] p-4 mb-4">
+              <p className="text-sm font-semibold text-[#1C1C1C] mb-3">Modo de Envio</p>
+              <div className="flex flex-col gap-3">
+                {([
+                  {
+                    value: 'auto',
+                    title: 'Automático',
+                    desc: 'Mensagens disparadas automaticamente pela agenda',
+                  },
+                  {
+                    value: 'manual',
+                    title: 'Fila de Aprovação',
+                    desc: 'Você revisa e aprova cada mensagem antes do envio',
+                  },
+                ] as { value: ModoCobracaWhatsapp; title: string; desc: string }[]).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-3 cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="regua_modo"
+                      value={opt.value}
+                      checked={(config.regua_cobranca_modo ?? 'manual') === opt.value}
+                      onChange={() => updateConfig({ regua_cobranca_modo: opt.value })}
+                      className="mt-0.5 accent-[#2D6A6A]"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-[#1C1C1C]">{opt.title}</p>
+                      <p className="text-xs text-[#7A7A7A]">{opt.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Template editors */}
+            <div className="mb-2">
+              <p className="text-sm font-semibold text-[#1C1C1C] mb-1">Modelos de Mensagem</p>
+              <p className="text-xs text-[#7A7A7A] mb-4">
+                Configure até 3 etapas. Cada etapa dispara após o número de dias definido desde a data da sessão.
+              </p>
+            </div>
+            {loadingRegras ? (
+              <div className="flex justify-center py-6">
+                <div className="w-5 h-5 border-2 border-[#2D6A6A] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {([1, 2, 3] as EtapaCobranca[]).map((etapa) => (
+                  <ReguaCobrancaTemplateEditor
+                    key={etapa}
+                    etapa={etapa}
+                    regra={regras.find((r) => r.etapa === etapa)}
+                    onSave={(template, dias, ativo) => salvarRegra(etapa, template, dias, ativo)}
+                    onDelete={() => deletarRegra(etapa)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
     </div>
   )
 }
