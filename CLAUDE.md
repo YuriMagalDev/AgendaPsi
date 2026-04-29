@@ -185,4 +185,5 @@ Master reference: `docs/superpowers/plans/EXECUCAO.md`
 | `src/router.tsx` | Plan 3 |
 | `src/hooks/useAssinatura.ts` (new file) | Plan 2 |
 | `src/pages/PlanoPage.tsx` (new file) | Plans 3 and 4 |
+| `supabase/migrations/019_regua_cobranca.sql` (tables `regras_cobranca`, `cobracas_enviadas`) | Plan 1 (needs user_id + RLS when multi-tenant runs) |
 | Any new Supabase table | Plan 1 (may need user_id + RLS added to that table too) |

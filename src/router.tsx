@@ -12,6 +12,7 @@ import { PacienteDetalhePage } from '@/pages/PacienteDetalhePage'
 import { EditarPacientePage } from '@/pages/EditarPacientePage'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
 import { FinanceiroPacientePage } from '@/pages/FinanceiroPacientePage'
+import { CobrancaPage } from '@/pages/CobrancaPage'
 import { ConfiguracoesPage } from '@/pages/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
           { path: '/pacientes/:id/editar', element: <EditarPacientePage /> },
           { path: '/financeiro', element: <FinanceiroPage /> },
           { path: '/financeiro/paciente/:id', element: <FinanceiroPacientePage /> },
+          { path: '/cobranca', element: <CobrancaPage /> },
           { path: '/configuracoes', element: <ConfiguracoesPage /> },
         ],
       },
