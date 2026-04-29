@@ -4,7 +4,7 @@ import { PatientFilters } from '../PatientFilters'
 import type { PacienteFilters } from '@/lib/filterPacientes'
 
 vi.mock('@/hooks/useModalidadesSessao', () => ({
-  useModalidadesSessao: () => ({ modalidades: [], loading: false }),
+  useModalidadesSessao: () => ({ modalidadesSessao: [], loading: false }),
 }))
 
 const DEFAULT: PacienteFilters = { search: '', ativoOnly: true, modalidadeId: '', tipoContrato: '' }
