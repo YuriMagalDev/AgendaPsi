@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import type { SessaoStatus, SessaoView } from '@/lib/types'
 
 export type KanbanColunas = Record<SessaoStatus, SessaoView[]>
@@ -48,6 +49,7 @@ export function useKanban() {
   async function updateStatus(id: string, status: SessaoStatus) {
     const { error: err } = await supabase.from('sessoes').update({ status }).eq('id', id)
     if (err) throw err
+    await triggerGoogleCalendarSync('sync_update', id)
     await fetchAll()
   }
 

@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CheckCircle2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import { useSessoesDia } from '@/hooks/useSessoesDia'
 import { RemarcarModal } from '@/components/sessao/RemarcarModal'
 import type { FormaPagamento, SessaoStatus, SessaoView } from '@/lib/types'
@@ -62,7 +63,8 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
     setNotas(val)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
-      await supabase.from('sessoes').update({ notas_checklist: val || null }).eq('id', sessao.id)
+      const { error } = await supabase.from('sessoes').update({ notas_checklist: val || null }).eq('id', sessao.id)
+      if (!error) await triggerGoogleCalendarSync('sync_update', sessao.id)
     }, 500)
   }
 
@@ -238,7 +240,7 @@ export function ChecklistPage() {
         .update({ status: 'remarcada' })
         .eq('id', sessao.id)
       if (updateError) throw updateError
-      const { error: insertError } = await supabase.from('sessoes').insert({
+      const { data: novaSessao, error: insertError } = await supabase.from('sessoes').insert({
         paciente_id: sessao.paciente_id,
         avulso_nome: sessao.avulso_nome,
         avulso_telefone: sessao.avulso_telefone,
@@ -250,7 +252,7 @@ export function ChecklistPage() {
         pago: false,
         data_pagamento: null,
         sessao_origem_id: sessao.id,
-      })
+      }).select('id').single()
       if (insertError) {
         await supabase
           .from('sessoes')
@@ -258,6 +260,8 @@ export function ChecklistPage() {
           .eq('id', sessao.id)
         throw insertError
       }
+      await triggerGoogleCalendarSync('sync_update', sessao.id)
+      await triggerGoogleCalendarSync('sync_create', novaSessao.id)
       setRemarcarSessao(null)
       await refetch()
     } catch {
@@ -270,7 +274,8 @@ export function ChecklistPage() {
   async function salvarTudo() {
     setSalvando(true)
     for (const u of updates) {
-      await supabase.from('sessoes').update({ status: u.status }).eq('id', u.id)
+      const { error } = await supabase.from('sessoes').update({ status: u.status }).eq('id', u.id)
+      if (!error) await triggerGoogleCalendarSync('sync_update', u.id)
     }
     for (const p of pagamentos.filter(p => p.pago)) {
       await supabase.from('sessoes').update({
@@ -279,6 +284,7 @@ export function ChecklistPage() {
         valor_cobrado: p.valor_cobrado,
         data_pagamento: new Date().toISOString(),
       }).eq('id', p.id)
+      // Payment-only updates do NOT trigger calendar sync
     }
     setUpdates([])
     setPagamentos([])

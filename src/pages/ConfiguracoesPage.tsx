@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
+import { format, formatDistance } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useConvenios } from '@/hooks/useConvenios'
@@ -7,6 +7,7 @@ import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
 import { useReguaCobranca } from '@/hooks/useReguaCobranca'
+import { useGoogleCalendarSync } from '@/hooks/useGoogleCalendarSync'
 import { ReguaCobrancaTemplateEditor } from '@/components/regua-cobranca/ReguaCobrancaTemplateEditor'
 import type { EtapaCobranca, ModoCobracaWhatsapp } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
@@ -27,6 +28,8 @@ export function ConfiguracoesPage() {
     salvarRegra,
     deletarRegra,
   } = useReguaCobranca()
+
+  const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora, error: googleSyncError } = useGoogleCalendarSync()
 
   useEffect(() => { fetchRegras() }, [])
 
@@ -56,6 +59,10 @@ export function ConfiguracoesPage() {
   const [testando, setTestando] = useState<'lembrete_noite' | 'lembrete_manha' | null>(null)
   const [sessaoTesteId, setSessaoTesteId] = useState<string>('')
   const [sessoesDisponiveis, setSessoesDisponiveis] = useState<Array<{ id: string; label: string }>>([])
+
+  // Google Calendar state
+  const [conectandoGoogle, setConectandoGoogle]       = useState(false)
+  const [desconectandoGoogle, setDesconectandoGoogle] = useState(false)
 
   if (config && !configSynced) {
     setConfigForm({
@@ -191,6 +198,30 @@ export function ConfiguracoesPage() {
       setTestando(null)
     }
   }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('google_success')) {
+      toast.success('Google Calendar conectado com sucesso!')
+      window.history.replaceState({}, '', '/configuracoes')
+    }
+    const googleError = params.get('google_error')
+    if (googleError) {
+      const messages: Record<string, string> = {
+        cancelado:          'Conexão cancelada.',
+        estado_invalido:    'Erro de segurança no fluxo OAuth. Tente novamente.',
+        troca_falhou:       'Falha ao trocar o código de autorização. Tente novamente.',
+        sem_refresh_token:  'Google não retornou o token. Revogue o acesso em myaccount.google.com/permissions e tente novamente.',
+        db_error:           'Erro ao salvar a conexão. Tente novamente.',
+      }
+      toast.error(messages[googleError] ?? 'Erro ao conectar o Google Calendar.')
+      window.history.replaceState({}, '', '/configuracoes')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (googleSyncError) toast.error(googleSyncError)
+  }, [googleSyncError])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -727,6 +758,126 @@ export function ConfiguracoesPage() {
           </>
         )}
       </section>
+
+      {/* Google Calendar */}
+      <div className="bg-surface border border-border rounded-card p-6">
+        <h2 className="font-display text-lg font-semibold text-[#1C1C1C] mb-4">Google Calendar</h2>
+
+        {loadingGoogleSync ? (
+          <div className="flex justify-center py-4">
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : !googleSync?.connected ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              Sincronize suas sessões automaticamente com o Google Calendar. Cada sessão criada ou
+              atualizada aparece na sua agenda Google em tempo real.
+            </p>
+            <button
+              onClick={async () => {
+                setConectandoGoogle(true)
+                try { await conectarGoogle() } finally { setConectandoGoogle(false) }
+              }}
+              disabled={conectandoGoogle}
+              className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
+            >
+              {conectandoGoogle ? 'Redirecionando...' : 'Conectar Google Calendar'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#4CAF82]" />
+                  <span className="text-sm font-medium text-[#4CAF82]">Conectado</span>
+                </div>
+                {googleSync.calendario_nome && (
+                  <p className="text-xs text-muted mt-0.5">{googleSync.calendario_nome}</p>
+                )}
+                {googleSync.ultimo_sync_em && (
+                  <p className="text-xs text-muted">
+                    Última sincronização:{' '}
+                    {formatDistance(new Date(googleSync.ultimo_sync_em), new Date(), { locale: ptBR, addSuffix: true })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4 space-y-3">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm text-[#1C1C1C]">Manter sincronização ativa</span>
+                <input
+                  type="checkbox"
+                  checked={googleSync.sync_enabled}
+                  onChange={e => atualizarGoogleSync({ sync_enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+              </label>
+
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm text-[#1C1C1C]">Sincronização bidirecional</span>
+                  <p className="text-xs text-muted">Importa eventos externos do Google Calendar como bloqueios de horário</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={googleSync.bidirectional_enabled}
+                  onChange={e => atualizarGoogleSync({ bidirectional_enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5 ml-4 shrink-0" />
+              </label>
+
+              {googleSync.bidirectional_enabled && (
+                <button
+                  onClick={sincronizarAgora}
+                  className="h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors"
+                >
+                  Sincronizar agora
+                </button>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <details>
+                <summary className="cursor-pointer text-sm text-primary hover:underline">
+                  Adicionar ao Apple Calendar (iCal)
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted">
+                    Copie a URL abaixo e adicione em Calendário → Arquivo → Nova Assinatura de Calendário
+                  </p>
+                  {config?.ical_token ? (
+                    <div className="p-2 bg-[#E8F4F4] rounded text-xs font-mono break-all select-all">
+                      {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-ical?token=${config.ical_token}`}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted italic">
+                      URL disponível após a primeira conexão com o Google Calendar.
+                    </p>
+                  )}
+                </div>
+              </details>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <button
+                onClick={async () => {
+                  if (!confirm('Desconectar o Google Calendar vai parar a sincronização e remover todos os dados de conexão. Continuar?')) return
+                  setDesconectandoGoogle(true)
+                  try { await desconectarGoogle() } finally { setDesconectandoGoogle(false) }
+                }}
+                disabled={desconectandoGoogle}
+                className="h-9 px-4 rounded-lg border border-[#C17F59] text-[#C17F59] text-sm font-medium hover:bg-[#C17F59]/5 transition-colors disabled:opacity-50"
+              >
+                {desconectandoGoogle ? 'Desconectando...' : 'Desconectar Google Calendar'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
