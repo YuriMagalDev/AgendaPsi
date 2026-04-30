@@ -69,6 +69,8 @@ export interface Sessao {
   duracao_minutos: number
   notas_checklist: string | null
   criado_em: string
+  google_calendar_event_id: string | null
+  google_calendar_synced_at: string | null
 }
 
 export interface RegraRepasse {
@@ -145,6 +147,10 @@ export interface ConfigPsicologo {
   chave_pix: string | null
   regua_cobranca_ativa: boolean
   regua_cobranca_modo: ModoCobracaWhatsapp
+  // Google Calendar Sync fields
+  google_calendar_sync_enabled: boolean
+  google_calendar_bidirectional: boolean
+  ical_token: string | null
 }
 
 export type SessaoView = Sessao & {
@@ -257,4 +263,50 @@ export interface SessaoParaCobranca {
   avulso_telefone: string | null
   pacientes: { nome: string; telefone: string | null } | null
   etapas_pendentes: EtapaCobranca[]
+}
+
+// ── Google Calendar Sync ──────────────────────────────────────────────────────
+
+export interface GoogleOAuthTokens {
+  id: string
+  user_id: string
+  google_user_id: string
+  refresh_token_encrypted: string
+  access_token_expiry: number
+  calendario_id: string
+  sync_enabled: boolean
+  bidirectional_enabled: boolean
+  calendario_nome: string | null
+  ultimo_sync_em: string | null
+  criado_em: string
+}
+
+export interface SessionsSyncMap {
+  id: string
+  user_id: string
+  sessao_id: string
+  google_event_id: string
+  status_ultima_sync: string
+  sincronizado_em: string
+}
+
+export interface SessionsExternalBusy {
+  id: string
+  user_id: string
+  google_event_id: string
+  titulo: string
+  data_hora_inicio: string
+  data_hora_fim: string
+  descricao: string | null
+  atualizacao_em: string | null
+  sincronizado_em: string
+}
+
+export interface GoogleCalendarSyncStatus {
+  connected: boolean
+  sync_enabled: boolean
+  bidirectional_enabled: boolean
+  calendario_nome: string | null
+  google_user_id: string | null
+  ultimo_sync_em: string | null
 }
