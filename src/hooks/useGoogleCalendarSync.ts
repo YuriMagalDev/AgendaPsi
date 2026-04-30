@@ -30,7 +30,11 @@ export function useGoogleCalendarSync() {
       setError(err?.message ?? 'Falha ao obter URL de autorização')
       return
     }
-    window.location.href = data.authUrl
+    const popup = window.open(data.authUrl, 'google-auth', 'width=500,height=650,left=200,top=100')
+    if (!popup) {
+      // Fallback to redirect if popup was blocked
+      window.location.href = data.authUrl
+    }
   }
 
   async function disconnect() {

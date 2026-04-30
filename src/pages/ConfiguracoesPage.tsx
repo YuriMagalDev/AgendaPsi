@@ -29,7 +29,7 @@ export function ConfiguracoesPage() {
     deletarRegra,
   } = useReguaCobranca()
 
-  const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora, error: googleSyncError } = useGoogleCalendarSync()
+  const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora, error: googleSyncError, refetch: refetchGoogleSync } = useGoogleCalendarSync()
 
   useEffect(() => { fetchRegras() }, [])
 
@@ -199,24 +199,51 @@ export function ConfiguracoesPage() {
     }
   }
 
+  const googleOAuthMessages: Record<string, string> = {
+    cancelado:          'Conexão cancelada.',
+    estado_invalido:    'Erro de segurança no fluxo OAuth. Tente novamente.',
+    troca_falhou:       'Falha ao trocar o código de autorização. Tente novamente.',
+    sem_refresh_token:  'Google não retornou o token. Revogue o acesso em myaccount.google.com/permissions e tente novamente.',
+    db_error:           'Erro ao salvar a conexão. Tente novamente.',
+  }
+
+  // Handles redirect-based callback (fallback when popup was blocked)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('google_success')) {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'google_calendar_success' }, window.location.origin)
+        window.close()
+        return
+      }
       toast.success('Google Calendar conectado com sucesso!')
       window.history.replaceState({}, '', '/configuracoes')
     }
     const googleError = params.get('google_error')
     if (googleError) {
-      const messages: Record<string, string> = {
-        cancelado:          'Conexão cancelada.',
-        estado_invalido:    'Erro de segurança no fluxo OAuth. Tente novamente.',
-        troca_falhou:       'Falha ao trocar o código de autorização. Tente novamente.',
-        sem_refresh_token:  'Google não retornou o token. Revogue o acesso em myaccount.google.com/permissions e tente novamente.',
-        db_error:           'Erro ao salvar a conexão. Tente novamente.',
+      if (window.opener) {
+        window.opener.postMessage({ type: 'google_calendar_error', error: googleError }, window.location.origin)
+        window.close()
+        return
       }
-      toast.error(messages[googleError] ?? 'Erro ao conectar o Google Calendar.')
+      toast.error(googleOAuthMessages[googleError] ?? 'Erro ao conectar o Google Calendar.')
       window.history.replaceState({}, '', '/configuracoes')
     }
+  }, [])
+
+  // Handles popup-based callback via postMessage
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === 'google_calendar_success') {
+        toast.success('Google Calendar conectado com sucesso!')
+        refetchGoogleSync()
+      } else if (event.data?.type === 'google_calendar_error') {
+        toast.error(googleOAuthMessages[event.data.error] ?? 'Erro ao conectar o Google Calendar.')
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
   }, [])
 
   useEffect(() => {
