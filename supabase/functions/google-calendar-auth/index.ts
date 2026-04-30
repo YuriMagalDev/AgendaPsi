@@ -66,7 +66,12 @@ serve(async (req) => {
   let action: string | undefined
 
   if (req.method === 'GET') {
-    action = url.searchParams.get('action') ?? undefined
+    // Google OAuth callback arrives as GET with ?code= or ?error= — no action param
+    if (url.searchParams.get('code') || url.searchParams.get('error')) {
+      action = 'callback'
+    } else {
+      action = url.searchParams.get('action') ?? undefined
+    }
   } else {
     try {
       const body = await req.json()
