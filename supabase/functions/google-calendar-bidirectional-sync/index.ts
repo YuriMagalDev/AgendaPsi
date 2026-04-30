@@ -33,6 +33,11 @@ async function getValidAccessToken(
   tokenRow: { refresh_token_encrypted: string; access_token_expiry: number },
   userId: string
 ): Promise<string> {
+  // NOTE: google_oauth_tokens only stores refresh_token_encrypted and access_token_expiry —
+  // there is no cached access_token column, so we cannot skip the refresh call even when
+  // access_token_expiry is in the future. For this single-user personal app, always refreshing
+  // is acceptable. To optimise, add an `access_token_cached text` column to google_oauth_tokens,
+  // store the access token here, and return it early when Date.now() < access_token_expiry - 60_000.
   const refreshToken = await decryptToken(supabase, tokenRow.refresh_token_encrypted)
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

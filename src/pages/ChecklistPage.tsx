@@ -63,7 +63,8 @@ function SessaoChecklist({ sessao, update, pagamento, onUpdate, onPagamento, onR
     setNotas(val)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
-      await supabase.from('sessoes').update({ notas_checklist: val || null }).eq('id', sessao.id)
+      const { error } = await supabase.from('sessoes').update({ notas_checklist: val || null }).eq('id', sessao.id)
+      if (!error) await triggerGoogleCalendarSync('sync_update', sessao.id)
     }, 500)
   }
 
