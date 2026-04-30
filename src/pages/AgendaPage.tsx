@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Plus, CalendarIcon } from 'lucide-react'
 import { format, addDays, subDays, isToday, getISOWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSessoesDia } from '@/hooks/useSessoesDia'
+import { useExternalBusy } from '@/hooks/useExternalBusy'
+import { checkGoogleConflict } from '@/lib/conflictCheckGoogle'
 import { SessaoCard } from '@/components/sessao/SessaoCard'
 import { SessaoPanel } from '@/components/sessao/SessaoPanel'
 import { NovaSessaoModal } from '@/components/sessao/NovaSessaoModal'
@@ -21,6 +23,10 @@ export function AgendaPage() {
   const { sessoes, loading, error, refetch } = useSessoesDia(dateStr)
   const [modalAberto, setModalAberto] = useState(false)
   const [sessaoSelecionada, setSessaoSelecionada] = useState<SessaoView | null>(null)
+
+  const startOfDay = new Date(new Date(data).setHours(0, 0, 0, 0))
+  const endOfDay   = new Date(new Date(data).setHours(23, 59, 59, 999))
+  const externalBusy = useExternalBusy(startOfDay, endOfDay)
 
   const semana = getISOWeek(data)
   const tituloData = isToday(data)
@@ -103,9 +109,20 @@ export function AgendaPage() {
 
       {!loading && !error && sessoes.length > 0 && (
         <div className="flex flex-col gap-2">
-          {sessoes.map(s => (
-            <SessaoCard key={s.id} sessao={s} onClick={() => setSessaoSelecionada(s)} />
-          ))}
+          {sessoes.map(s => {
+            const conflicts = checkGoogleConflict(s.data_hora, s.duracao_minutos ?? 50, externalBusy)
+            const hasConflict = conflicts.length > 0
+            return (
+              <div key={s.id} className="flex flex-col">
+                <SessaoCard sessao={s} onClick={() => setSessaoSelecionada(s)} />
+                {hasConflict && (
+                  <span className="text-xs text-[#C17F59] font-medium px-1 pt-0.5">
+                    Conflito: {conflicts[0].titulo}
+                  </span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
