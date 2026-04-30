@@ -3,6 +3,7 @@ import { X, CheckCircle2, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import { RemarcarModal } from '@/components/sessao/RemarcarModal'
 import { STATUS_CONFIG } from '@/lib/statusConfig'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
@@ -68,6 +69,7 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
         .update({ status: novoStatus })
         .eq('id', sessao.id)
       if (error) throw error
+      await triggerGoogleCalendarSync('sync_update', sessao.id)
       onUpdate()
       onClose()
     } catch {
@@ -86,7 +88,7 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
         .eq('id', sessao.id)
       if (updateError) throw updateError
 
-      const { error: insertError } = await supabase.from('sessoes').insert({
+      const { data: novaSesSao, error: insertError } = await supabase.from('sessoes').insert({
         paciente_id: sessao.paciente_id,
         avulso_nome: sessao.avulso_nome,
         avulso_telefone: sessao.avulso_telefone,
@@ -98,7 +100,7 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
         pago: false,
         data_pagamento: null,
         sessao_origem_id: sessao.id,
-      })
+      }).select('id').single()
       if (insertError) {
         await supabase
           .from('sessoes')
@@ -107,6 +109,8 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
         throw insertError
       }
 
+      await triggerGoogleCalendarSync('sync_update', sessao.id)
+      await triggerGoogleCalendarSync('sync_create', novaSesSao.id)
       onUpdate()
       onClose()
     } catch {
@@ -147,6 +151,7 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
         meio_atendimento_id: editMeio,
       }).eq('id', sessao.id)
       if (error) throw error
+      await triggerGoogleCalendarSync('sync_update', sessao.id)
       onUpdate()
       onClose()
     } catch {

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import { usePacientes } from '@/hooks/usePacientes'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
@@ -77,7 +78,7 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
   async function onSubmit(data: FormData) {
     setServerError(null)
     try {
-      const { error } = await supabase.from('sessoes').insert({
+      const { data: inserted, error } = await supabase.from('sessoes').insert({
         paciente_id: data.tipo === 'paciente' ? data.paciente_id : null,
         avulso_nome: data.tipo === 'avulso' ? data.avulso_nome : null,
         avulso_telefone: data.tipo === 'avulso' ? (data.avulso_telefone || null) : null,
@@ -88,8 +89,9 @@ export function NovaSessaoModal({ defaultDate, onClose, onSaved }: Props) {
         duracao_minutos: Number(data.duracao_minutos) || 50,
         valor_cobrado: data.valor_cobrado ? Number(data.valor_cobrado) : null,
         pago: false,
-      })
+      }).select('id').single()
       if (error) throw error
+      await triggerGoogleCalendarSync('sync_create', inserted.id)
       onSaved()
       onClose()
     } catch {

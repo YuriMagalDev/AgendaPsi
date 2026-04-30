@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import { usePacientes } from '@/hooks/usePacientes'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
@@ -186,8 +187,11 @@ export function NovoPacientePage() {
         const sessoesBulk = slots.flatMap(s =>
           gerarSessoesParaSlot(id, data.modalidade_sessao_id, data.meio_atendimento_id, s, semanas)
         )
-        const { error: sessErr } = await supabase.from('sessoes').insert(sessoesBulk)
+        const { data: insertedSessoes, error: sessErr } = await supabase.from('sessoes').insert(sessoesBulk).select('id')
         if (sessErr) throw sessErr
+        for (const s of insertedSessoes ?? []) {
+          await triggerGoogleCalendarSync('sync_create', s.id)
+        }
       }
 
       navigate(`/pacientes/${id}`)

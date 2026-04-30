@@ -10,6 +10,7 @@ import { useConvenios } from '@/hooks/useConvenios'
 import { useModalidadesSessao } from '@/hooks/useModalidadesSessao'
 import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { supabase } from '@/lib/supabase'
+import { triggerGoogleCalendarSync } from '@/lib/googleCalendarSync'
 import { useSlotsSemanais } from '@/hooks/useSlotsSemanais'
 import { useAllActiveSlots } from '@/hooks/useAllActiveSlots'
 import { checkSlotConflict, addMinutesToTime } from '@/lib/conflictCheck'
@@ -189,8 +190,11 @@ export function EditarPacientePage() {
         8,
       )
       if (sessoesBulk.length > 0) {
-        const { error: sessErr } = await supabase.from('sessoes').insert(sessoesBulk)
+        const { data: insertedSessoes, error: sessErr } = await supabase.from('sessoes').insert(sessoesBulk).select('id')
         if (sessErr) throw sessErr
+        for (const s of insertedSessoes ?? []) {
+          await triggerGoogleCalendarSync('sync_create', s.id)
+        }
       }
 
       setNewSlot(null)
