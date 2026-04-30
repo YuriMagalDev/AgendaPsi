@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { EtapaCobranca, RegraCobranca } from '@/lib/types'
 
 interface Props {
@@ -22,6 +22,20 @@ export function ReguaCobrancaTemplateEditor({ etapa, regra, onSave, onDelete }: 
   const [dias, setDias]         = useState(regra?.dias_apos ?? (etapa === 1 ? 1 : etapa === 2 ? 3 : 7))
   const [ativo, setAtivo]       = useState(regra?.ativo ?? true)
   const [saving, setSaving]     = useState(false)
+  const textareaRef             = useRef<HTMLTextAreaElement>(null)
+
+  function insertVariable(variable: string) {
+    const el = textareaRef.current
+    if (!el) return
+    const start = el.selectionStart
+    const end   = el.selectionEnd
+    const next  = template.slice(0, start) + variable + template.slice(end)
+    setTemplate(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start + variable.length, start + variable.length)
+    })
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -78,18 +92,24 @@ export function ReguaCobrancaTemplateEditor({ etapa, regra, onSave, onDelete }: 
           Mensagem
         </label>
         <textarea
+          ref={textareaRef}
           value={template}
           onChange={(e) => setTemplate(e.target.value)}
           rows={5}
           className="w-full px-3 py-2 rounded-lg border border-[#E4E0DA] bg-white text-xs outline-none focus:ring-2 focus:ring-[#2D6A6A]/20 focus:border-[#2D6A6A] transition-colors resize-y"
         />
-        <p className="mt-1 text-xs text-[#7A7A7A]">
-          Variáveis disponíveis:{' '}
-          <code className="bg-white px-1 rounded">{'{{nome}}'}</code>{' '}
-          <code className="bg-white px-1 rounded">{'{{valor}}'}</code>{' '}
-          <code className="bg-white px-1 rounded">{'{{data_sessao}}'}</code>{' '}
-          <code className="bg-white px-1 rounded">{'{{chave_pix}}'}</code>
-        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {(['{{nome}}', '{{valor}}', '{{data_sessao}}', '{{chave_pix}}'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => insertVariable(v)}
+              className="px-2 py-0.5 rounded bg-white border border-[#E4E0DA] text-xs font-mono text-[#2D6A6A] hover:border-[#2D6A6A] hover:bg-[#E8F4F4] transition-colors"
+            >
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex gap-2">
