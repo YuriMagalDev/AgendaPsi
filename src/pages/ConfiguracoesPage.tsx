@@ -29,7 +29,7 @@ export function ConfiguracoesPage() {
     deletarRegra,
   } = useReguaCobranca()
 
-  const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora } = useGoogleCalendarSync()
+  const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora, error: googleSyncError } = useGoogleCalendarSync()
 
   useEffect(() => { fetchRegras() }, [])
 
@@ -218,6 +218,10 @@ export function ConfiguracoesPage() {
       window.history.replaceState({}, '', '/configuracoes')
     }
   }, [])
+
+  useEffect(() => {
+    if (googleSyncError) toast.error(googleSyncError)
+  }, [googleSyncError])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
