@@ -186,4 +186,5 @@ Master reference: `docs/superpowers/plans/EXECUCAO.md`
 | `src/hooks/useAssinatura.ts` (new file) | Plan 2 |
 | `src/pages/PlanoPage.tsx` (new file) | Plans 3 and 4 |
 | `supabase/migrations/019_regua_cobranca.sql` (tables `regras_cobranca`, `cobracas_enviadas`) | Plan 1 (needs user_id + RLS when multi-tenant runs) |
+| `src/hooks/useReguaCobranca.ts` (`salvarRegra` onConflict) | Plan 1 (change `onConflict: 'etapa'` → `'user_id,etapa'` after migration 017 runs) |
 | Any new Supabase table | Plan 1 (may need user_id + RLS added to that table too) |

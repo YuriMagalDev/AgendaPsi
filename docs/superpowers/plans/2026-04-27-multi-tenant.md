@@ -51,6 +51,15 @@ ALTER TABLE despesas ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users
 ALTER TABLE slots_semanais ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 ALTER TABLE modalidades_sessao ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 ALTER TABLE meios_atendimento ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+-- Régua de cobrança tables (added in migration 019, retrofitted here)
+ALTER TABLE regras_cobranca ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+ALTER TABLE cobracas_enviadas ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+-- Migrate existing single-user data to the current authenticated user (run manually if needed)
+-- UPDATE regras_cobranca SET user_id = auth.uid() WHERE user_id IS NULL;
+-- UPDATE cobracas_enviadas SET user_id = (SELECT id FROM auth.users LIMIT 1) WHERE user_id IS NULL;
+-- Drop old single-column unique on regras_cobranca, add per-user unique
+ALTER TABLE regras_cobranca DROP CONSTRAINT IF EXISTS regras_cobranca_etapa_key;
+ALTER TABLE regras_cobranca ADD CONSTRAINT regras_cobranca_user_etapa_key UNIQUE (user_id, etapa);
 -- config_psicologo already has user_id
 
 -- 2. Drop all existing open RLS policies
@@ -67,6 +76,8 @@ DROP POLICY IF EXISTS "auth users full access" ON modalidades_sessao;
 DROP POLICY IF EXISTS "auth users full access" ON meios_atendimento;
 DROP POLICY IF EXISTS "auth users full access" ON slots_semanais;
 DROP POLICY IF EXISTS "Authenticated users can manage their slots" ON slots_semanais;
+DROP POLICY IF EXISTS "auth users full access" ON regras_cobranca;
+DROP POLICY IF EXISTS "auth users full access" ON cobracas_enviadas;
 
 -- 3. Create tenant-isolation RLS policies
 CREATE POLICY "tenant_isolation" ON pacientes
@@ -117,6 +128,16 @@ CREATE POLICY "tenant_isolation" ON meios_atendimento
   FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "tenant_isolation" ON regras_cobranca
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- cobracas_enviadas is scoped via sessao_id → sessoes.user_id join, but
+-- direct user_id column makes RLS simpler and consistent
+CREATE POLICY "tenant_isolation" ON cobracas_enviadas
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
 -- 4. Auto-fill user_id trigger function
 CREATE OR REPLACE FUNCTION public.set_user_id()
 RETURNS trigger AS $$
@@ -151,6 +172,10 @@ CREATE TRIGGER trg_set_user_id_modalidades_sessao BEFORE INSERT ON modalidades_s
   FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
 CREATE TRIGGER trg_set_user_id_meios_atendimento BEFORE INSERT ON meios_atendimento
   FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
+CREATE TRIGGER trg_set_user_id_regras_cobranca BEFORE INSERT ON regras_cobranca
+  FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
+CREATE TRIGGER trg_set_user_id_cobracas_enviadas BEFORE INSERT ON cobracas_enviadas
+  FOR EACH ROW EXECUTE FUNCTION public.set_user_id();
 
 -- 5. Signup trigger — provision defaults for new users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -169,6 +194,27 @@ BEGIN
     ('Presencial', '🏥', NEW.id),
     ('Online',     '💻', NEW.id),
     ('Domicílio',  '🏠', NEW.id);
+
+  -- Seed default payment reminder rules (regua_cobranca feature)
+  INSERT INTO public.regras_cobranca (user_id, etapa, dias_apos, template_mensagem, ativo) VALUES
+    (NEW.id, 1, 1,
+     'Olá {{nome}}! 😊' || chr(10) ||
+     'Passando para lembrar que a sessão do dia {{data_sessao}} no valor de {{valor}} ainda está pendente.' || chr(10) ||
+     'Chave PIX: {{chave_pix}}' || chr(10) ||
+     'Qualquer dúvida, estou à disposição! 🙏',
+     true),
+    (NEW.id, 2, 3,
+     'Oi {{nome}}, tudo bem?' || chr(10) ||
+     'Notei que o pagamento da sessão do dia {{data_sessao}} ({{valor}}) ainda não foi identificado.' || chr(10) ||
+     'Chave PIX: {{chave_pix}}' || chr(10) ||
+     'Se já pagou, pode desconsiderar esta mensagem! 😊',
+     true),
+    (NEW.id, 3, 7,
+     '{{nome}}, boa tarde!' || chr(10) ||
+     'Gostaria de verificar sobre o pagamento da sessão do dia {{data_sessao}} no valor de {{valor}}.' || chr(10) ||
+     'Chave PIX: {{chave_pix}}' || chr(10) ||
+     'Podemos conversar sobre isso? Fico no aguardo. 🙏',
+     true);
 
   RETURN NEW;
 END;

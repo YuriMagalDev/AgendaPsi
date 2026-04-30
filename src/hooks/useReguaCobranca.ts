@@ -122,14 +122,11 @@ export function useReguaCobranca() {
     ativo: boolean
   ): Promise<RegraCobranca> {
     setError(null)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Usuário não autenticado')
-
     const { data, error: err } = await supabase
       .from('regras_cobranca')
       .upsert(
-        { etapa, template_mensagem: template, dias_apos: dias, ativo, user_id: user.id },
-        { onConflict: 'user_id,etapa' }
+        { etapa, template_mensagem: template, dias_apos: dias, ativo },
+        { onConflict: 'etapa' } // becomes 'user_id,etapa' after Plan 1 (multi-tenant)
       )
       .select()
       .single()
