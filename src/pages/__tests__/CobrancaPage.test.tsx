@@ -10,12 +10,14 @@ const {
   mockEnfileirar,
   mockCancelar,
   mockReenviar,
+  mockMarcarPago,
 } = vi.hoisted(() => ({
   mockFetchSessoes:  vi.fn(),
   mockFetchCobracas: vi.fn(),
   mockEnfileirar:    vi.fn(),
   mockCancelar:      vi.fn(),
   mockReenviar:      vi.fn(),
+  mockMarcarPago:    vi.fn(),
 }))
 
 let mockSessoes:  SessaoParaCobranca[] = []
@@ -32,6 +34,7 @@ vi.mock('@/hooks/useReguaCobranca', () => ({
     enfileirarEEnviar:        mockEnfileirar,
     cancelarCobranca:         mockCancelar,
     reenviarFalha:            mockReenviar,
+    marcarPago:               mockMarcarPago,
   }),
 }))
 
@@ -93,5 +96,24 @@ describe('CobrancaPage', () => {
   it('shows no spinner in normal state', () => {
     renderPage()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('calls marcarPago with session id when button clicked', () => {
+    mockMarcarPago.mockResolvedValue(undefined)
+    mockSessoes = [{
+      id: 's-1',
+      data_hora: '2026-04-01T10:00:00Z',
+      valor_cobrado: 150,
+      pago: false,
+      status: 'concluida',
+      paciente_id: null,
+      avulso_nome: 'Maria Silva',
+      avulso_telefone: null,
+      pacientes: null,
+      etapas_pendentes: [1, 2, 3],
+    }]
+    renderPage()
+    fireEvent.click(screen.getByText('Marcar como Pago'))
+    expect(mockMarcarPago).toHaveBeenCalledWith('s-1')
   })
 })

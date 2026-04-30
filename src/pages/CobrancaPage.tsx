@@ -41,13 +41,15 @@ export function CobrancaPage() {
     enfileirarEEnviar,
     cancelarCobranca,
     reenviarFalha,
+    marcarPago,
   } = useReguaCobranca()
 
   const [aba, setAba]               = useState<Aba>('sessoes')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [sendingKey, setSendingKey] = useState<string | null>(null)
-  const [retryingId, setRetryingId] = useState<string | null>(null)
+  const [sendingKey, setSendingKey]   = useState<string | null>(null)
+  const [retryingId, setRetryingId]   = useState<string | null>(null)
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchSessoesParaCobranca()
@@ -79,6 +81,15 @@ export function CobrancaPage() {
       await cancelarCobranca(cobrancaId)
     } finally {
       setCancelingId(null)
+    }
+  }
+
+  async function handleMarcarPago(sessaoId: string) {
+    setMarkingPaidId(sessaoId)
+    try {
+      await marcarPago(sessaoId)
+    } finally {
+      setMarkingPaidId(null)
     }
   }
 
@@ -136,26 +147,35 @@ export function CobrancaPage() {
               const isExpanded = expandedId === sessao.id
               return (
                 <div key={sessao.id} className="bg-white rounded-xl border border-[#E4E0DA]">
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-3 text-left"
-                    onClick={() => setExpandedId(isExpanded ? null : sessao.id)}
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-[#1C1C1C]">{nome}</p>
-                      <p className="text-xs text-[#7A7A7A] mt-0.5">
-                        {dataFormatada(sessao.data_hora)} · {moeda(sessao.valor_cobrado)}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        sessao.etapas_pendentes.length > 0
-                          ? 'bg-[#C17F59]/10 text-[#C17F59]'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
+                  <div className="flex items-center px-4 py-3 gap-2">
+                    <button
+                      className="flex-1 flex items-center justify-between text-left"
+                      onClick={() => setExpandedId(isExpanded ? null : sessao.id)}
                     >
-                      {sessao.etapas_pendentes.length} etapa{sessao.etapas_pendentes.length !== 1 ? 's' : ''} pendente{sessao.etapas_pendentes.length !== 1 ? 's' : ''}
-                    </span>
-                  </button>
+                      <div>
+                        <p className="text-sm font-semibold text-[#1C1C1C]">{nome}</p>
+                        <p className="text-xs text-[#7A7A7A] mt-0.5">
+                          {dataFormatada(sessao.data_hora)} · {moeda(sessao.valor_cobrado)}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          sessao.etapas_pendentes.length > 0
+                            ? 'bg-[#C17F59]/10 text-[#C17F59]'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {sessao.etapas_pendentes.length} etapa{sessao.etapas_pendentes.length !== 1 ? 's' : ''} pendente{sessao.etapas_pendentes.length !== 1 ? 's' : ''}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleMarcarPago(sessao.id)}
+                      disabled={markingPaidId === sessao.id}
+                      className="shrink-0 h-7 px-3 rounded-lg border border-[#4CAF82] text-[#4CAF82] text-xs font-medium disabled:opacity-50 hover:bg-[#4CAF82]/5 transition-colors"
+                    >
+                      {markingPaidId === sessao.id ? 'Salvando...' : 'Marcar como Pago'}
+                    </button>
+                  </div>
 
                   {isExpanded && (
                     <div className="border-t border-[#E4E0DA] px-4 py-3 space-y-2">

@@ -216,6 +216,17 @@ export function useReguaCobranca() {
     return aprovarEEnviar(cobrancaId)
   }
 
+  async function marcarPago(sessaoId: string): Promise<void> {
+    setError(null)
+    const { error: err } = await supabase
+      .from('sessoes')
+      .update({ pago: true })
+      .eq('id', sessaoId)
+
+    if (err) { setError(err.message); throw new Error(err.message) }
+    await fetchSessoesParaCobranca()
+  }
+
   return {
     regras,
     cobracasEnviadas,
@@ -231,5 +242,6 @@ export function useReguaCobranca() {
     enfileirarEEnviar,
     cancelarCobranca,
     reenviarFalha,
+    marcarPago,
   }
 }
