@@ -23,7 +23,7 @@ describe('ReguaCobrancaTemplateEditor', () => {
         onDelete={vi.fn()}
       />
     )
-    expect(screen.getByText('Etapa 1')).toBeInTheDocument()
+    expect(screen.getByText('Lembrete 1')).toBeInTheDocument()
   })
 
   it('pre-fills fields when regra is provided', () => {

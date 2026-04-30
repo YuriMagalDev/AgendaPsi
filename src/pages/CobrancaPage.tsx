@@ -165,7 +165,7 @@ export function CobrancaPage() {
                             : 'bg-gray-100 text-gray-500'
                         }`}
                       >
-                        {sessao.etapas_pendentes.length} etapa{sessao.etapas_pendentes.length !== 1 ? 's' : ''} pendente{sessao.etapas_pendentes.length !== 1 ? 's' : ''}
+                        {sessao.etapas_pendentes.length} lembrete{sessao.etapas_pendentes.length !== 1 ? 's' : ''} pendente{sessao.etapas_pendentes.length !== 1 ? 's' : ''}
                       </span>
                     </button>
                     <button
@@ -180,7 +180,7 @@ export function CobrancaPage() {
                   {isExpanded && (
                     <div className="border-t border-[#E4E0DA] px-4 py-3 space-y-2">
                       {sessao.etapas_pendentes.length === 0 ? (
-                        <p className="text-xs text-[#7A7A7A]">Todas as etapas já foram processadas.</p>
+                        <p className="text-xs text-[#7A7A7A]">Todos os lembretes já foram processados.</p>
                       ) : (
                         sessao.etapas_pendentes.map((etapa) => {
                           const key = `${sessao.id}-${etapa}`
@@ -190,7 +190,7 @@ export function CobrancaPage() {
                               className="flex items-center justify-between p-2 bg-[#F7F5F2] rounded-lg"
                             >
                               <span className="text-xs font-semibold text-[#1C1C1C]">
-                                Etapa {etapa}
+                                Lembrete {etapa}
                               </span>
                               <button
                                 onClick={() => handleEnviar(sessao.id, etapa)}
@@ -230,7 +230,7 @@ export function CobrancaPage() {
                     <div>
                       <p className="text-sm font-semibold text-[#1C1C1C]">{nome}</p>
                       <p className="text-xs text-[#7A7A7A] mt-0.5">
-                        Etapa {c.etapa} · {dataFormatada(c.data_agendado)}
+                        Lembrete {c.etapa} · {dataFormatada(c.data_agendado)}
                       </p>
                       {c.data_enviado && (
                         <p className="text-xs text-[#4CAF82] mt-0.5">

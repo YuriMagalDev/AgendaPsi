@@ -41,7 +41,7 @@ export function ReguaCobrancaTemplateEditor({ etapa, regra, onSave, onDelete }: 
     <div className="p-4 border border-[#E4E0DA] rounded-xl bg-[#F7F5F2]">
       <div className="flex items-center justify-between mb-4">
         <h5 className="text-sm font-semibold text-[#1C1C1C]">
-          {'Etapa '}
+          {'Lembrete '}
           {etapa}
           {regra && (
             <span className="ml-2 text-xs font-normal text-[#7A7A7A]">
