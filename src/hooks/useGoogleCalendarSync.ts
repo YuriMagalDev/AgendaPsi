@@ -68,14 +68,23 @@ export function useGoogleCalendarSync() {
       const tokenPatch: Record<string, boolean> = {}
       if (patch.sync_enabled !== undefined)          tokenPatch.sync_enabled = patch.sync_enabled
       if (patch.bidirectional_enabled !== undefined) tokenPatch.bidirectional_enabled = patch.bidirectional_enabled
-      await supabase.from('google_oauth_tokens').update(tokenPatch).eq('user_id', user.id)
+      const { error: tokenErr } = await supabase.from('google_oauth_tokens').update(tokenPatch).eq('user_id', user.id)
+      if (tokenErr) {
+        setError(tokenErr.message)
+        return
+      }
     }
 
     await fetchStatus()
   }
 
   async function syncNow() {
-    await supabase.functions.invoke('google-calendar-bidirectional-sync', {})
+    const { error: err } = await supabase.functions.invoke('google-calendar-bidirectional-sync', {})
+    if (err) {
+      setError(err.message)
+      return
+    }
+    await fetchStatus()
   }
 
   return { status, loading, error, connect, disconnect, updateSyncSettings, syncNow, refetch: fetchStatus }

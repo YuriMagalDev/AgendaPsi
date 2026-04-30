@@ -116,10 +116,11 @@ describe('useGoogleCalendarSync', () => {
     )
   })
 
-  it('syncNow calls google-calendar-bidirectional-sync', async () => {
+  it('syncNow calls google-calendar-bidirectional-sync and refreshes status', async () => {
     vi.mocked(supabase.functions.invoke)
-      .mockResolvedValueOnce({ data: connectedStatus,           error: null } as any)
-      .mockResolvedValueOnce({ data: { ok: true, synced: 3 }, error: null } as any)
+      .mockResolvedValueOnce({ data: connectedStatus,           error: null } as any) // mount
+      .mockResolvedValueOnce({ data: { ok: true, synced: 3 }, error: null } as any)  // syncNow
+      .mockResolvedValueOnce({ data: connectedStatus,           error: null } as any) // fetchStatus after sync
 
     const { result } = renderHook(() => useGoogleCalendarSync())
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -127,5 +128,6 @@ describe('useGoogleCalendarSync', () => {
     await act(async () => { await result.current.syncNow() })
 
     expect(vi.mocked(supabase.functions.invoke)).toHaveBeenCalledWith('google-calendar-bidirectional-sync', {})
+    expect(vi.mocked(supabase.functions.invoke)).toHaveBeenCalledTimes(3)
   })
 })
