@@ -6,7 +6,7 @@ export function useExternalBusy(desde: Date, ate: Date) {
   const [busy, setBusy] = useState<SessionsExternalBusy[]>([])
 
   useEffect(() => {
-    async function fetch() {
+    async function loadBusy() {
       const { data } = await supabase
         .from('sessions_external_busy')
         .select('*')
@@ -16,7 +16,7 @@ export function useExternalBusy(desde: Date, ate: Date) {
 
       setBusy((data as SessionsExternalBusy[]) ?? [])
     }
-    fetch()
+    loadBusy()
   }, [desde.toISOString(), ate.toISOString()])
 
   return busy
