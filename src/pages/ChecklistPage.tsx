@@ -277,13 +277,13 @@ export function ChecklistPage() {
       if (!error) await triggerGoogleCalendarSync('sync_update', u.id)
     }
     for (const p of pagamentos.filter(p => p.pago)) {
-      const { error } = await supabase.from('sessoes').update({
+      await supabase.from('sessoes').update({
         pago: true,
         forma_pagamento: p.forma_pagamento,
         valor_cobrado: p.valor_cobrado,
         data_pagamento: new Date().toISOString(),
       }).eq('id', p.id)
-      if (!error) await triggerGoogleCalendarSync('sync_update', p.id)
+      // Payment-only updates do NOT trigger calendar sync
     }
     setUpdates([])
     setPagamentos([])

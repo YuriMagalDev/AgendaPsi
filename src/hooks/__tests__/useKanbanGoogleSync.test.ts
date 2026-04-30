@@ -37,7 +37,8 @@ describe('Google Calendar sync on session mutation', () => {
     expectSyncInvoked('sync_update', 's2')
   })
 
-  it('sync_delete is called after session delete', async () => {
+  // Sessions use soft-delete (status='cancelada') — sync_delete reserved for future hard-delete support
+  it('sync_delete contract: invocation body shape is correct', async () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: true }, error: null } as any)
     await supabase.functions.invoke('google-calendar-sync', {
       body: { action: 'sync_delete', sessao_id: 's3' },
