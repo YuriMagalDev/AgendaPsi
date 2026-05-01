@@ -10,22 +10,21 @@ export function useRiscoTemplates() {
   async function refetch() {
     setLoading(true)
     setError(null)
-    try {
-      const { data, error: err } = await supabase
-        .from('risco_templates')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome')
-      if (err) throw new Error(err.message)
+    const { data, error: err } = await supabase
+      .from('risco_templates')
+      .select('*')
+      .eq('ativo', true)
+      .order('nome')
+    if (err) {
+      setError(err.message)
+    } else {
       setTemplates((data ?? []) as RiscoTemplate[])
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   async function create(nome: string, corpo: string): Promise<RiscoTemplate> {
+    setError(null)
     const { data, error: err } = await supabase
       .from('risco_templates')
       .insert({ nome, corpo })
@@ -37,6 +36,7 @@ export function useRiscoTemplates() {
   }
 
   async function update(id: string, patch: Partial<Pick<RiscoTemplate, 'nome' | 'corpo' | 'ativo'>>): Promise<void> {
+    setError(null)
     const { error: err } = await supabase
       .from('risco_templates')
       .update(patch)
@@ -46,6 +46,7 @@ export function useRiscoTemplates() {
   }
 
   async function remove(id: string): Promise<void> {
+    setError(null)
     const { error: err } = await supabase
       .from('risco_templates')
       .delete()
