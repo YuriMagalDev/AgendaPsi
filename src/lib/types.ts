@@ -310,3 +310,60 @@ export interface GoogleCalendarSyncStatus {
   google_user_id: string | null
   ultimo_sync_em: string | null
 }
+
+// ============================================================
+// Pacientes em Risco
+// ============================================================
+
+export interface RiscoConfig {
+  id: string
+  user_id: string
+  min_cancelamentos_seguidos: number
+  dias_sem_sessao: number
+  dias_apos_falta_sem_agendamento: number
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface RiscoTemplate {
+  id: string
+  user_id: string
+  nome: string
+  corpo: string
+  ativo: boolean
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface RiscoTrigger {
+  tipo: 'cancelamentos_seguidos' | 'inatividade' | 'falta_sem_agendamento'
+  motivo: string
+  dias?: number
+  count?: number
+}
+
+export interface PacienteEmRisco {
+  id: string
+  nome: string
+  telefone: string | null
+  ultima_sessao_data_hora: string | null
+  risk_level: 'Alto' | 'Médio'
+  cancelamentos_seguidos: number | null
+  dias_sem_sessao: number | null
+  dias_apos_falta: number | null
+  triggers: RiscoTrigger[]
+}
+
+export interface RiscoFollowup {
+  id: string
+  user_id: string
+  paciente_id: string
+  template_id: string | null
+  mensagem_completa: string
+  mensagem_enviada_em: string
+  resposta_whatsapp: string | null
+  resposta_em: string | null
+  resultado: 'enviada' | 'respondida_sim' | 'respondida_nao' | 'reconectado'
+  sessao_agendada_apos: string | null
+  reconectado_em: string | null
+}
