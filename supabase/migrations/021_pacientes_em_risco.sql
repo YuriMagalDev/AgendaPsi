@@ -66,7 +66,7 @@ create policy "tenant_isolation" on risco_followups
 create index idx_risco_followups_user_id    on risco_followups(user_id);
 create index idx_risco_followups_paciente   on risco_followups(paciente_id);
 create index idx_risco_followups_enviado_em on risco_followups(mensagem_enviada_em);
-create index idx_risco_followups_resultado  on risco_followups(resultado);
+-- NOTE: idx_risco_followups_resultado removed — low-cardinality 4-value enum, index unused by planner.
 -- NOTE: set_user_id() trigger omitted — same rationale as risco_config above.
 
 -- ── 4. RPC get_pacientes_em_risco ────────────────────────────
@@ -115,6 +115,15 @@ begin
     group by paciente_id
     having count(*) >= p_min_cancelamentos
   ),
+  cancelamentos_count as (
+    -- Actual cancellation count per patient (used in SELECT to return real value, not 0/1).
+    select paciente_id, count(*)::int as cnt
+    from sessoes
+    where user_id = p_user_id
+      and status in ('cancelada', 'remarcada')
+      and data_hora >= now() - interval '90 days'
+    group by paciente_id
+  ),
   trig_inatividade as (
     select pu.id as paciente_id
     from pacientes_user pu
@@ -122,7 +131,7 @@ begin
     where usp.data_hora is null or usp.data_hora < v_cutoff_inatividade
   ),
   trig_falta as (
-    -- Most recent 'faltou' session (within 90 days) with no follow-up booked within the threshold.
+    -- Most recent faltou per patient (within 90 days) with no attended/scheduled follow-up within threshold.
     select distinct s1.paciente_id
     from sessoes s1
     left join sessoes s2
@@ -130,10 +139,28 @@ begin
       and s2.user_id = p_user_id
       and s2.data_hora > s1.data_hora
       and s2.data_hora <= s1.data_hora + (p_dias_apos_falta || ' days')::interval
+      and s2.status in ('agendada', 'confirmada', 'concluida')
     where s1.user_id = p_user_id
       and s1.status = 'faltou'
       and s1.data_hora >= now() - interval '90 days'
+      and s1.data_hora = (
+        select max(s3.data_hora)
+        from sessoes s3
+        where s3.paciente_id = s1.paciente_id
+          and s3.user_id = p_user_id
+          and s3.status = 'faltou'
+          and s3.data_hora >= now() - interval '90 days'
+      )
       and s2.id is null
+  ),
+  ultima_falta_pp as (
+    -- Most recent faltou date per patient, used to compute dias_apos_falta in SELECT.
+    select paciente_id, max(data_hora) as data_hora
+    from sessoes
+    where user_id = p_user_id
+      and status = 'faltou'
+      and data_hora >= now() - interval '90 days'
+    group by paciente_id
   ),
   all_triggers as (
     select paciente_id, 'cancelamentos' as ttype from trig_cancelamentos union all
@@ -157,12 +184,17 @@ begin
     a.telefone,
     a.data_hora,
     case when a.num_triggers >= 2 then 'Alto' else 'Médio' end,
-    (select count(*) from trig_cancelamentos tc where tc.paciente_id = a.id)::int,
+    coalesce((select cc.cnt from cancelamentos_count cc where cc.paciente_id = a.id), 0),
     case
       when a.data_hora is null then (p_dias_sem_sessao + 30)::int
       else (extract(epoch from (v_now - a.data_hora)) / 86400)::int
     end,
-    null::int,
+    case
+      when 'falta' = any(a.tlist)
+      then (select (extract(epoch from (v_now - ufp.data_hora)) / 86400)::int
+            from ultima_falta_pp ufp where ufp.paciente_id = a.id)
+      else null
+    end,
     (
       select jsonb_agg(obj) from (
         select jsonb_build_object('tipo','cancelamentos_seguidos','motivo', p_min_cancelamentos || '+ cancelamentos nos últimos 90 dias') as obj
