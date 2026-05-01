@@ -37,10 +37,23 @@ describe('useRiscoConfig', () => {
   })
 
   it('update calls supabase.update with patch', async () => {
-    const mockData = { id: 'c1', min_cancelamentos_seguidos: 3, dias_sem_sessao: 30, dias_apos_falta_sem_agendamento: 7 }
-    mockFrom.mockReturnValue(makeChain({ data: mockData, error: null }))
+    const initialData = { id: 'c1', min_cancelamentos_seguidos: 2, dias_sem_sessao: 30, dias_apos_falta_sem_agendamento: 7 }
+    const updatedData = { ...initialData, min_cancelamentos_seguidos: 3 }
+    const chain = makeChain({ data: initialData, error: null })
+    // For the update call, mock a new chain that returns updatedData
+    const updateChain = makeChain({ data: updatedData, error: null })
+    mockFrom
+      .mockReturnValueOnce(chain)      // initial fetch on mount
+      .mockReturnValue(updateChain)    // update call
+
     const { result } = renderHook(() => useRiscoConfig())
+    // Wait for initial fetch to complete
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+
     await act(async () => { await result.current.update({ min_cancelamentos_seguidos: 3 }) })
+
     expect(result.current.error).toBeNull()
+    expect(updateChain.update).toHaveBeenCalledWith({ min_cancelamentos_seguidos: 3 })
+    expect(result.current.config?.min_cancelamentos_seguidos).toBe(3)
   })
 })

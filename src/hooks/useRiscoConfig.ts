@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { RiscoConfig } from '@/lib/types'
 
@@ -33,19 +33,13 @@ export function useRiscoConfig() {
   const [config, setConfig] = useState<RiscoConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const configRef = useRef<RiscoConfig | null>(null)
-
-  function applyConfig(c: RiscoConfig) {
-    configRef.current = c
-    setConfig(c)
-  }
 
   const refetch = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const result = await fetchOrCreateConfig()
-      applyConfig(result)
+      setConfig(result)
     } catch (e) {
       setError(String(e))
     } finally {
@@ -53,24 +47,20 @@ export function useRiscoConfig() {
     }
   }, [])
 
-  const update = useCallback(async (patch: Partial<Pick<RiscoConfig,
+  async function update(patch: Partial<Pick<RiscoConfig,
     'min_cancelamentos_seguidos' | 'dias_sem_sessao' | 'dias_apos_falta_sem_agendamento'
-  >>): Promise<void> => {
-    let current = configRef.current
-    if (!current?.id) {
-      // Config not yet loaded — fetch it first
-      current = await fetchOrCreateConfig()
-      applyConfig(current)
-    }
+  >>): Promise<void> {
+    setError(null)
+    if (!config?.id) throw new Error('Config não carregada')
     const { data, error: err } = await supabase
       .from('risco_config')
       .update(patch)
-      .eq('id', current.id)
+      .eq('id', config.id)
       .select()
       .single()
     if (err) { setError(err.message); throw new Error(err.message) }
-    applyConfig(data as RiscoConfig)
-  }, [])
+    setConfig(data as RiscoConfig)
+  }
 
   useEffect(() => { refetch() }, [refetch])
 
