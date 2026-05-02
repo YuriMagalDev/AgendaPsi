@@ -8,6 +8,7 @@ import { KanbanPage } from '@/pages/KanbanPage'
 import { ChecklistPage } from '@/pages/ChecklistPage'
 import { PacientesPage } from '@/pages/PacientesPage'
 import { NovoPacientePage } from '@/pages/NovoPacientePage'
+import { PacientesRiscoPage } from '@/pages/PacientesRiscoPage'
 import { PacienteDetalhePage } from '@/pages/PacienteDetalhePage'
 import { EditarPacientePage } from '@/pages/EditarPacientePage'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
           { path: '/checklist', element: <ChecklistPage /> },
           { path: '/pacientes', element: <PacientesPage /> },
           { path: '/pacientes/novo', element: <NovoPacientePage /> },
+          { path: '/pacientes/risco', element: <PacientesRiscoPage /> },
           { path: '/pacientes/:id', element: <PacienteDetalhePage /> },
           { path: '/pacientes/:id/editar', element: <EditarPacientePage /> },
           { path: '/financeiro', element: <FinanceiroPage /> },

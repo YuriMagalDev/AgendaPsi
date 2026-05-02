@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, Kanban, Users, BarChart2, Settings, LogOut, ClipboardList, Wallet } from 'lucide-react'
+import { Calendar, Kanban, Users, BarChart2, Settings, LogOut, ClipboardList, Wallet, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useChecklistBadge } from '@/hooks/useChecklistBadge'
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/kanban',        icon: Kanban,         label: 'Kanban'        },
   { to: '/checklist',     icon: ClipboardList,  label: 'Checklist'     },
   { to: '/pacientes',     icon: Users,          label: 'Pacientes'     },
+  { to: '/pacientes/risco', icon: AlertTriangle, label: 'Em Risco'      },
   { to: '/financeiro',    icon: BarChart2,       label: 'Financeiro'    },
   { to: '/cobranca',      icon: Wallet,          label: 'Cobrança'      },
   { to: '/configuracoes', icon: Settings,        label: 'Configurações' },
