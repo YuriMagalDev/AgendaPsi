@@ -32,6 +32,26 @@ vi.mock('@/hooks/useReguaCobranca', () => ({
 vi.mock('@/components/regua-cobranca/ReguaCobrancaTemplateEditor', () => ({
   ReguaCobrancaTemplateEditor: () => null,
 }))
+vi.mock('@/hooks/useRiscoConfig', () => ({
+  useRiscoConfig: () => ({
+    config: { id: 'rc1', min_cancelamentos_seguidos: 2, dias_sem_sessao: 30, dias_apos_falta_sem_agendamento: 7 },
+    loading: false,
+    error: null,
+    update: vi.fn(),
+    refetch: vi.fn(),
+  }),
+}))
+vi.mock('@/hooks/useRiscoTemplates', () => ({
+  useRiscoTemplates: () => ({
+    templates: [],
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  }),
+}))
 vi.mock('@/hooks/useGoogleCalendarSync', () => ({
   useGoogleCalendarSync: vi.fn(() => ({
     status: { connected: false, sync_enabled: false, bidirectional_enabled: false, calendario_nome: null, google_user_id: null, ultimo_sync_em: null },

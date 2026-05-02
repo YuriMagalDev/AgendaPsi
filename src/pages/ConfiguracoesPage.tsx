@@ -9,6 +9,7 @@ import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
 import { useReguaCobranca } from '@/hooks/useReguaCobranca'
 import { useGoogleCalendarSync } from '@/hooks/useGoogleCalendarSync'
 import { ReguaCobrancaTemplateEditor } from '@/components/regua-cobranca/ReguaCobrancaTemplateEditor'
+import { RiscoConfigSection } from '@/components/configuracoes/RiscoConfigSection'
 import type { EtapaCobranca, ModoCobracaWhatsapp } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2 } from 'lucide-react'
@@ -785,6 +786,9 @@ export function ConfiguracoesPage() {
           </>
         )}
       </section>
+
+      {/* Pacientes em Risco */}
+      <RiscoConfigSection />
 
       {/* Google Calendar */}
       <div className="bg-surface border border-border rounded-card p-6">
