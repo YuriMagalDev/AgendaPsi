@@ -57,17 +57,19 @@ export function PacientesRiscoPage() {
   const [historico, setHistorico] = useState<FollowupWithPaciente[]>([])
   const [historicoLoading, setHistoricoLoading] = useState(false)
 
-  useEffect(() => {
-    if (tab !== 'historico') return
+  async function fetchHistorico() {
     setHistoricoLoading(true)
-    supabase
+    const { data } = await supabase
       .from('risco_followups')
       .select('*, pacientes(nome)')
       .order('mensagem_enviada_em', { ascending: false })
-      .then(({ data }) => {
-        setHistorico((data ?? []) as FollowupWithPaciente[])
-        setHistoricoLoading(false)
-      })
+    setHistorico((data ?? []) as FollowupWithPaciente[])
+    setHistoricoLoading(false)
+  }
+
+  useEffect(() => {
+    if (tab !== 'historico') return
+    fetchHistorico()
   }, [tab])
 
   return (
@@ -240,12 +242,7 @@ export function PacientesRiscoPage() {
           onClose={() => setDetailTarget(null)}
           onUpdated={() => {
             setDetailTarget(null)
-            setTab('historico')
-            supabase
-              .from('risco_followups')
-              .select('*, pacientes(nome)')
-              .order('mensagem_enviada_em', { ascending: false })
-              .then(({ data }) => setHistorico((data ?? []) as FollowupWithPaciente[]))
+            fetchHistorico()
           }}
         />
       )}

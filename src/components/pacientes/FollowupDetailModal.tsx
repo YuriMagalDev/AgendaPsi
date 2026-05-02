@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { RiscoFollowup } from '@/lib/types'
 
@@ -40,12 +41,18 @@ export function FollowupDetailModal({ followup, onClose, onUpdated }: Props) {
 
   async function handleReconectado() {
     setMarcando(true)
-    await supabase
-      .from('risco_followups')
-      .update({ resultado: 'reconectado', reconectado_em: new Date().toISOString() })
-      .eq('id', followup.id)
-    setMarcando(false)
-    onUpdated()
+    try {
+      const { error } = await supabase
+        .from('risco_followups')
+        .update({ resultado: 'reconectado', reconectado_em: new Date().toISOString() })
+        .eq('id', followup.id)
+      if (error) throw error
+      onUpdated()
+    } catch {
+      toast.error('Erro ao atualizar status')
+    } finally {
+      setMarcando(false)
+    }
   }
 
   return (
