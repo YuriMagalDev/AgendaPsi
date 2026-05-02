@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { RiscoTemplate } from '@/lib/types'
 
-export function useRiscoTemplates() {
+export function useRiscoTemplates(options?: { soAtivos?: boolean }) {
+  const soAtivos = options?.soAtivos ?? true
   const [templates, setTemplates] = useState<RiscoTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,11 +11,9 @@ export function useRiscoTemplates() {
   async function refetch() {
     setLoading(true)
     setError(null)
-    const { data, error: err } = await supabase
-      .from('risco_templates')
-      .select('*')
-      .eq('ativo', true)
-      .order('nome')
+    let query = supabase.from('risco_templates').select('*')
+    if (soAtivos) query = query.eq('ativo', true)
+    const { data, error: err } = await query.order('nome')
     if (err) {
       setError(err.message)
     } else {

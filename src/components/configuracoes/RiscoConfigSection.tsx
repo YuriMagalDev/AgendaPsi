@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Trash2, Plus, Pencil, X, Check } from 'lucide-react'
 import { useRiscoConfig } from '@/hooks/useRiscoConfig'
@@ -20,14 +20,16 @@ function LimiaresForm() {
   const [synced, setSynced] = useState(false)
   const [salvando, setSalvando] = useState(false)
 
-  if (config && !synced) {
-    setForm({
-      min_cancelamentos_seguidos: String(config.min_cancelamentos_seguidos),
-      dias_sem_sessao: String(config.dias_sem_sessao),
-      dias_apos_falta_sem_agendamento: String(config.dias_apos_falta_sem_agendamento),
-    })
-    setSynced(true)
-  }
+  useEffect(() => {
+    if (config && !synced) {
+      setForm({
+        min_cancelamentos_seguidos: String(config.min_cancelamentos_seguidos),
+        dias_sem_sessao: String(config.dias_sem_sessao),
+        dias_apos_falta_sem_agendamento: String(config.dias_apos_falta_sem_agendamento),
+      })
+      setSynced(true)
+    }
+  }, [config, synced])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -182,7 +184,7 @@ function TemplateEditForm({ initial, onSave, onCancel, saveLabel = 'Salvar' }: T
 // ── Templates sub-section ──────────────────────────────────────────────────
 
 function TemplatesSection() {
-  const { templates, loading, create, update, remove } = useRiscoTemplates()
+  const { templates, loading, create, update, remove } = useRiscoTemplates({ soAtivos: false })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
 
