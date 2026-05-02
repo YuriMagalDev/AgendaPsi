@@ -13,10 +13,10 @@ const mockConfig = { min_cancelamentos_seguidos: 2, dias_sem_sessao: 30, dias_ap
 describe('usePacientesEmRisco', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns empty list initially', () => {
-    mockRpc.mockResolvedValue({ data: [], error: null })
-    const { result } = renderHook(() => usePacientesEmRisco(mockConfig))
+  it('returns empty list and skips RPC when config is null', () => {
+    const { result } = renderHook(() => usePacientesEmRisco(null))
     expect(result.current.pacientes).toEqual([])
+    expect(mockRpc).not.toHaveBeenCalled()
   })
 
   it('fetches and maps RPC results', async () => {
@@ -25,7 +25,7 @@ describe('usePacientesEmRisco', () => {
     const { result } = renderHook(() => usePacientesEmRisco(mockConfig))
     await act(async () => { await result.current.refetch() })
     expect(result.current.pacientes[0].nome).toBe('Ana')
-    expect(mockRpc).toHaveBeenCalledWith('get_pacientes_em_risco', {
+    expect(mockRpc).toHaveBeenLastCalledWith('get_pacientes_em_risco', {
       p_user_id: 'u1',
       p_min_cancelamentos: 2,
       p_dias_sem_sessao: 30,
