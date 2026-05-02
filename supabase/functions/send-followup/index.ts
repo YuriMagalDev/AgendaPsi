@@ -22,12 +22,24 @@ serve(async (req) => {
   )
   if (userErr || !user) return new Response(JSON.stringify({ error: 'Não autenticado' }), { status: 401, headers: cors })
 
-  const { paciente_id, template_id, custom_message } = await req.json()
+  let paciente_id: string, template_id: string | undefined, custom_message: string | undefined
+  try {
+    const body = await req.json()
+    paciente_id = body.paciente_id
+    template_id = body.template_id
+    custom_message = body.custom_message
+  } catch {
+    return new Response(JSON.stringify({ error: 'Corpo da requisição inválido' }), { status: 400, headers: cors })
+  }
+  if (!paciente_id)
+    return new Response(JSON.stringify({ error: 'paciente_id obrigatório' }), { status: 400, headers: cors })
 
-  const { data: config } = await supabase
+  const { data: config, error: configErr } = await supabase
     .from('config_psicologo')
     .select('whatsapp_conectado, evolution_instance_name')
     .eq('user_id', user.id).single()
+  if (configErr && configErr.code !== 'PGRST116')
+    return new Response(JSON.stringify({ error: 'Erro ao buscar configuração' }), { status: 500, headers: cors })
 
   if (!config?.whatsapp_conectado || !config.evolution_instance_name)
     return new Response(JSON.stringify({ error: 'WhatsApp não conectado' }), { status: 412, headers: cors })
@@ -49,8 +61,12 @@ serve(async (req) => {
   if (!corpo) return new Response(JSON.stringify({ error: 'Mensagem vazia' }), { status: 400, headers: cors })
 
   const { data: sessions } = await supabase.from('sessoes')
-    .select('data_hora').eq('paciente_id', paciente_id)
-    .order('data_hora', { ascending: false }).limit(1)
+    .select('data_hora')
+    .eq('paciente_id', paciente_id)
+    .eq('user_id', user.id)
+    .in('status', ['concluida', 'faltou', 'cancelada', 'remarcada'])
+    .order('data_hora', { ascending: false })
+    .limit(1)
 
   const ultima_sessao = sessions?.[0]?.data_hora
     ? new Date(sessions[0].data_hora).toLocaleDateString('pt-BR') : 'N/A'
@@ -70,9 +86,11 @@ serve(async (req) => {
   if (!evoResp.ok)
     return new Response(JSON.stringify({ error: `Evolution API ${evoResp.status}` }), { status: 502, headers: cors })
 
-  const { data: followup } = await supabase.from('risco_followups')
+  const { data: followup, error: followupErr } = await supabase.from('risco_followups')
     .insert({ user_id: user.id, paciente_id, template_id: template_id ?? null, mensagem_completa, resultado: 'enviada' })
     .select().single()
+  if (followupErr)
+    return new Response(JSON.stringify({ error: 'Erro ao registrar envio' }), { status: 500, headers: cors })
 
-  return new Response(JSON.stringify({ success: true, followup_id: followup?.id }), { headers: cors })
+  return new Response(JSON.stringify({ success: true, followup_id: followup.id }), { headers: cors })
 })
