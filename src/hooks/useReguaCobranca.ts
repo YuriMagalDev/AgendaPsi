@@ -126,7 +126,7 @@ export function useReguaCobranca() {
       .from('regras_cobranca')
       .upsert(
         { etapa, template_mensagem: template, dias_apos: dias, ativo },
-        { onConflict: 'etapa' } // becomes 'user_id,etapa' after Plan 1 (multi-tenant)
+        { onConflict: 'user_id,etapa' }
       )
       .select()
       .single()
