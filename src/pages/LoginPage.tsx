@@ -18,6 +18,7 @@ type FormData = z.infer<typeof schema>
 export function LoginPage() {
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [isSignup, setIsSignup] = useState(false)
 
   const {
     register,
@@ -40,6 +41,19 @@ export function LoginPage() {
     navigate('/agenda')
   }
 
+  async function onSignup(data: FormData) {
+    setServerError(null)
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    })
+    if (error) {
+      setServerError(error.message)
+      return
+    }
+    navigate('/onboarding')
+  }
+
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -49,7 +63,7 @@ export function LoginPage() {
         </div>
 
         <div className="bg-surface rounded-card p-6 shadow-sm border border-border">
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit(isSignup ? onSignup : onSubmit)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -85,8 +99,18 @@ export function LoginPage() {
               disabled={isSubmitting}
               className="w-full bg-primary hover:bg-primary/90 text-white mt-2"
             >
-              {isSubmitting ? 'Entrando...' : 'Entrar'}
+              {isSubmitting
+                ? (isSignup ? 'Criando conta...' : 'Entrando...')
+                : (isSignup ? 'Criar conta' : 'Entrar')}
             </Button>
+
+            <button
+              type="button"
+              onClick={() => { setIsSignup(s => !s); setServerError(null) }}
+              className="text-sm text-muted text-center hover:text-primary transition-colors"
+            >
+              {isSignup ? 'Já tenho conta — fazer login' : 'Não tenho conta — criar agora'}
+            </button>
           </form>
         </div>
       </div>

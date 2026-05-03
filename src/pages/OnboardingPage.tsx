@@ -20,13 +20,19 @@ export function OnboardingPage() {
     if (!dadosStep1) return
     setErroFinal(null)
 
-    const { error } = await supabase.from('config_psicologo').insert({
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setErroFinal('Sessão expirada. Faça login novamente.')
+      return
+    }
+
+    const { error } = await supabase.from('config_psicologo').update({
       nome: dadosStep1.nome,
       horario_inicio: dadosStep1.horario_inicio,
       horario_fim: dadosStep1.horario_fim,
       horario_checklist: dadosStep1.horario_checklist,
       automacao_whatsapp_ativa: false,
-    })
+    }).eq('user_id', user.id)
 
     if (error) {
       setErroFinal('Erro ao salvar configurações. Tente novamente.')
