@@ -20,7 +20,6 @@ CREATE POLICY "tenant_isolation" ON assinaturas
   FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX idx_assinaturas_user_id ON assinaturas(user_id);
 CREATE INDEX idx_assinaturas_status ON assinaturas(status);
 
 -- Extend handle_new_user to provision a trial subscription
@@ -45,6 +44,23 @@ BEGIN
   INSERT INTO public.assinaturas (user_id, plano, status)
   VALUES (NEW.id, 'completo', 'trial');
 
+  INSERT INTO public.regras_cobranca (user_id, etapa, dias_apos, template_mensagem, ativo) VALUES
+    (NEW.id, 1, 1, 'Olá {{nome}}! 😊' || chr(10) || 'Passando para lembrar que a sessão do dia {{data_sessao}} no valor de {{valor}} ainda está pendente.' || chr(10) || 'Chave PIX: {{chave_pix}}' || chr(10) || 'Qualquer dúvida, estou à disposição! 🙏', true),
+    (NEW.id, 2, 3, 'Oi {{nome}}, tudo bem?' || chr(10) || 'Notei que o pagamento da sessão do dia {{data_sessao}} ({{valor}}) ainda não foi identificado.' || chr(10) || 'Chave PIX: {{chave_pix}}' || chr(10) || 'Se já pagou, pode desconsiderar esta mensagem! 😊', true),
+    (NEW.id, 3, 7, '{{nome}}, boa tarde!' || chr(10) || 'Gostaria de verificar sobre o pagamento da sessão do dia {{data_sessao}} no valor de {{valor}}.' || chr(10) || 'Chave PIX: {{chave_pix}}' || chr(10) || 'Podemos conversar sobre isso? Fico no aguardo. 🙏', true);
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.assinaturas_set_atualizado_em()
+RETURNS trigger AS $$
+BEGIN
+  NEW.atualizado_em = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_assinaturas_atualizado_em
+  BEFORE UPDATE ON assinaturas
+  FOR EACH ROW EXECUTE FUNCTION public.assinaturas_set_atualizado_em();
