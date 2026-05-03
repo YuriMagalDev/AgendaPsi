@@ -15,6 +15,7 @@ export interface ModalidadeSessao {
   nome: string
   emoji: string
   ativo: boolean
+  user_id?: string
 }
 
 export interface MeioAtendimento {
@@ -22,6 +23,7 @@ export interface MeioAtendimento {
   nome: string
   emoji: string
   ativo: boolean
+  user_id?: string
 }
 
 export interface Paciente {
@@ -37,6 +39,7 @@ export interface Paciente {
   modalidade_sessao_id: string | null
   meio_atendimento_id: string | null
   criado_em: string
+  user_id?: string
 }
 
 export interface Contrato {
@@ -48,6 +51,7 @@ export interface Contrato {
   dia_vencimento: number | null
   ativo: boolean
   criado_em: string
+  user_id?: string
 }
 
 export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_debito' | 'cartao_credito'
@@ -71,6 +75,7 @@ export interface Sessao {
   criado_em: string
   google_calendar_event_id: string | null
   google_calendar_synced_at: string | null
+  user_id?: string
 }
 
 export interface RegraRepasse {
@@ -79,6 +84,7 @@ export interface RegraRepasse {
   tipo_valor: RepasseTipoValor
   valor: number
   ativo: boolean
+  user_id?: string
 }
 
 export interface Repasse {
@@ -88,6 +94,7 @@ export interface Repasse {
   valor_calculado: number
   pago: boolean
   data_pagamento: string | null
+  user_id?: string
 }
 
 export interface RepasseMensal {
@@ -117,6 +124,7 @@ export interface ConfirmacaoWhatsapp {
   tipo_lembrete: TipoLembrete | null
   remarcacao_solicitada: boolean
   tipo: TipoNotificacao | null
+  user_id?: string
 }
 
 export type NotificacaoConfirmacao = ConfirmacaoWhatsapp & {
@@ -173,6 +181,7 @@ export interface SlotSemanal {
   ativo: boolean
   data_fim: string | null
   criado_em: string
+  user_id?: string
 }
 
 export interface SlotSemanalInput {
@@ -190,6 +199,7 @@ export interface Convenio {
   valor_sessao: number | null
   ativo: boolean
   criado_em: string
+  user_id?: string
 }
 
 export interface Despesa {
@@ -198,6 +208,7 @@ export interface Despesa {
   descricao: string
   valor: number
   criado_em: string
+  user_id?: string
 }
 
 export type PacienteComConvenio = Paciente & {
