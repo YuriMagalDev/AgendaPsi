@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, Kanban, Users, BarChart2, Settings, LogOut, ClipboardList, Wallet, AlertTriangle } from 'lucide-react'
+import { Calendar, Kanban, Users, BarChart2, Settings, LogOut, ClipboardList, Wallet, AlertTriangle, Crown } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useChecklistBadge } from '@/hooks/useChecklistBadge'
+import { useAssinatura } from '@/hooks/useAssinatura'
 
 const navItems = [
   { to: '/agenda',        icon: Calendar,      label: 'Agenda'        },
@@ -12,11 +13,13 @@ const navItems = [
   { to: '/financeiro',    icon: BarChart2,       label: 'Financeiro'    },
   { to: '/cobranca',      icon: Wallet,          label: 'Cobrança'      },
   { to: '/configuracoes', icon: Settings,        label: 'Configurações' },
+  { to: '/plano',         icon: Crown,           label: 'Plano'         },
 ] as const
 
 export function Sidebar() {
   const { signOut } = useAuth()
   const { hasPending } = useChecklistBadge()
+  const { isTrialAtivo } = useAssinatura()
 
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen bg-surface border-r border-border p-4">
@@ -41,6 +44,9 @@ export function Sidebar() {
               <Icon size={18} />
               {to === '/checklist' && hasPending && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#E07070] rounded-full" />
+              )}
+              {to === '/plano' && isTrialAtivo && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
               )}
             </div>
             {label}

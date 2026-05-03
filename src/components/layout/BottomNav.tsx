@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { Calendar, Kanban, Settings, ClipboardList, Wallet } from 'lucide-react'
+import { Calendar, Kanban, Settings, ClipboardList, Wallet, Crown } from 'lucide-react'
 import { useChecklistBadge } from '@/hooks/useChecklistBadge'
+import { useAssinatura } from '@/hooks/useAssinatura'
 
 const staticNavItems = [
   { to: '/agenda',        icon: Calendar,       label: 'Agenda'     },
@@ -8,10 +9,12 @@ const staticNavItems = [
   { to: '/checklist',     icon: ClipboardList,   label: 'Checklist'  },
   { to: '/cobranca',      icon: Wallet,          label: 'Cobrança'   },
   { to: '/configuracoes', icon: Settings,        label: 'Config.'    },
+  { to: '/plano',         icon: Crown,           label: 'Plano'      },
 ] as const
 
 export function BottomNav() {
   const { hasPending } = useChecklistBadge()
+  const { isTrialAtivo } = useAssinatura()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border flex md:hidden z-50">
@@ -31,6 +34,9 @@ export function BottomNav() {
                 <Icon size={20} />
                 {to === '/checklist' && hasPending && (
                   <span className="absolute top-0 right-0 w-2 h-2 bg-[#E07070] rounded-full" />
+                )}
+                {to === '/plano' && isTrialAtivo && (
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full" />
                 )}
               </div>
               <span>{label}</span>
