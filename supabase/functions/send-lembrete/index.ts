@@ -42,6 +42,26 @@ serve(async (req) => {
     .eq('user_id', sessao.user_id)
     .single()
 
+  // Check subscription allows WhatsApp
+  const { data: assinatura } = await supabase
+    .from('assinaturas')
+    .select('plano, status, trial_fim')
+    .eq('user_id', sessao.user_id)
+    .single()
+
+  const hoje = new Date().toISOString().slice(0, 10)
+  const podUsarWhatsapp =
+    assinatura?.plano === 'completo' &&
+    (assinatura?.status === 'ativo' ||
+      (assinatura?.status === 'trial' && (assinatura?.trial_fim ?? '') >= hoje))
+
+  if (!podUsarWhatsapp) {
+    return new Response(
+      JSON.stringify({ error: 'Plano não permite WhatsApp. Faça upgrade para o plano Completo.' }),
+      { status: 403, headers: corsHeaders }
+    )
+  }
+
   if (!config?.whatsapp_conectado || !config?.evolution_instance_name) {
     return new Response(JSON.stringify({ error: 'WhatsApp não conectado' }), { status: 412, headers: corsHeaders })
   }
