@@ -86,6 +86,19 @@ The complete design spec is at: `docs/superpowers/specs/2026-04-14-psicologo-des
 
 ---
 
+## Future Plans
+
+### Admin Tenant (not yet scheduled)
+
+Build a separate admin-only tenant for Yuri (the platform owner) to:
+- View all registered users and their status
+- Monitor usage across tenants
+- Manage the platform from a single dashboard
+
+This is a future initiative, not part of any current pending plan. When it's time to build, it will need its own plan and a separate Supabase role/schema to safely separate admin access from tenant data.
+
+---
+
 ## Design System
 
 ### Concept
@@ -190,3 +203,6 @@ Master reference: `docs/superpowers/plans/EXECUCAO.md`
 | `supabase/migrations/020_google_calendar_sync.sql` (tables `google_oauth_tokens`, `sessions_sync_map`, `sessions_external_busy`) | Plan 1 (RLS currently `auth.role() = 'authenticated'`; must tighten to `auth.uid() = user_id` + add user_id columns when multi-tenant runs) |
 | `src/hooks/useGoogleCalendarSync.ts` | Plan 1 (single-user only; multi-tenant needs user scoping in edge function calls) |
 | Any new Supabase table | Plan 1 (may need user_id + RLS added to that table too) |
+| `supabase/migrations/021_pacientes_em_risco.sql` (tables `risco_config`, `risco_templates`, `risco_followups`) | Plan 1 — add `set_user_id()` triggers (currently omitted); tables already have `user_id` + RLS |
+| `supabase/functions/send-followup/index.ts` (sessions query, line ~66) | Plan 1 — re-add `.eq('user_id', user.id)` to `sessoes` query once `sessoes.user_id` column exists |
+| RPC `get_pacientes_em_risco` (`pacientes_user` CTE) | Plan 1 — restore `WHERE p.user_id = p_user_id` filter once `pacientes.user_id` column exists (currently omitted; single-tenant workaround) |
