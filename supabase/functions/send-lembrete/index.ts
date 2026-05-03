@@ -23,29 +23,30 @@ serve(async (req) => {
   }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
-  // 1. Load config (in test mode we skip automacao_ativa, still require conexão)
+  // 1. Fetch session (includes user_id)
+  const { data: sessao } = await supabase
+    .from('sessoes')
+    .select('id, data_hora, user_id, avulso_nome, avulso_telefone, paciente_id, pacientes(nome, telefone)')
+    .eq('id', sessao_id)
+    .in('status', ['agendada', 'confirmada'])
+    .single()
+
+  if (!sessao) {
+    return new Response(JSON.stringify({ error: 'Sessão não encontrada ou status inválido' }), { status: 404, headers: corsHeaders })
+  }
+
+  // 2. Fetch config for this specific tenant
   const { data: config } = await supabase
     .from('config_psicologo')
     .select('automacao_whatsapp_ativa, whatsapp_conectado, evolution_instance_name, evolution_token, nome')
-    .limit(1).single()
+    .eq('user_id', sessao.user_id)
+    .single()
 
   if (!config?.whatsapp_conectado || !config?.evolution_instance_name) {
     return new Response(JSON.stringify({ error: 'WhatsApp não conectado' }), { status: 412, headers: corsHeaders })
   }
   if (!test && !config.automacao_whatsapp_ativa) {
     return new Response(JSON.stringify({ skipped: 'automação inativa' }), { headers: corsHeaders })
-  }
-
-  // 2. Fetch session + patient phone
-  const { data: sessao } = await supabase
-    .from('sessoes')
-    .select('id, data_hora, avulso_nome, avulso_telefone, paciente_id, pacientes(nome, telefone)')
-    .eq('id', sessao_id)
-    .in('status', ['agendada', 'confirmada'])
-    .single()
-
-  if (!sessao) {
-    return new Response(JSON.stringify({ error: 'sessão não encontrada' }), { status: 404, headers: corsHeaders })
   }
 
   const nome = (sessao.pacientes as any)?.nome ?? sessao.avulso_nome ?? 'Paciente'
@@ -90,7 +91,7 @@ serve(async (req) => {
       const parsed = JSON.parse(stateBody)
       if (parsed?.instance?.state !== 'open') {
         // Sync DB with reality so the UI shows State B and the user can reconnect
-        await supabase.from('config_psicologo').update({ whatsapp_conectado: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+        await supabase.from('config_psicologo').update({ whatsapp_conectado: false }).eq('user_id', sessao.user_id)
         return new Response(JSON.stringify({ error: `instância não está conectada (state=${parsed?.instance?.state}). Reconecte escaneando um novo QR Code.`, ...diag }), { status: 412, headers: corsHeaders })
       }
     } catch (e) {
@@ -103,7 +104,7 @@ serve(async (req) => {
   if (!test) {
     const { data: confirmacao, error: insertError } = await supabase
       .from('confirmacoes_whatsapp')
-      .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false })
+      .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false, user_id: sessao.user_id })
       .select('id')
       .single()
 

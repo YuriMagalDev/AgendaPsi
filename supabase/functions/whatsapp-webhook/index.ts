@@ -15,6 +15,7 @@ serve(async (req) => {
   }
 
   const payload = await req.json()
+  const instanceName: string = payload.instance ?? payload.data?.instance ?? ''
   console.log(`Webhook: event="${payload.event}" fromMe=${payload.data?.key?.fromMe} jid="${payload.data?.key?.remoteJid}"`)
 
   if (payload.event !== 'messages.upsert') return new Response('ok')
@@ -42,12 +43,26 @@ serve(async (req) => {
   const phone = normalizePhone(remoteJid.replace('@s.whatsapp.net', ''))
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
+  // Identify tenant by instance name
+  const { data: tenantConfig, error: tenantError } = await supabase
+    .from('config_psicologo')
+    .select('user_id, evolution_instance_name')
+    .eq('evolution_instance_name', instanceName)
+    .single()
+
+  if (tenantError || !tenantConfig) {
+    console.warn(`whatsapp-webhook: unknown instance "${instanceName}"`)
+    return new Response('ok')
+  }
+  const tenantUserId = tenantConfig.user_id
+
   // 2. Find most-recent pending confirmacao sent within the last 24h matching this phone
   const { data: rows, error: rowsError } = await supabase
     .from('confirmacoes_whatsapp')
     .select(`id, sessao_id, mensagem_enviada_em, sessoes!inner(data_hora, status, paciente_id, avulso_telefone, pacientes(telefone))`)
     .is('confirmado', null)
     .gt('mensagem_enviada_em', new Date(Date.now() - 24 * 3600_000).toISOString())
+    .eq('user_id', tenantUserId)
     .order('mensagem_enviada_em', { ascending: false })
 
   if (rowsError) {
@@ -73,11 +88,6 @@ serve(async (req) => {
     return new Response('ok')
   }
   console.log(`Match: confirmacao=${match.id} sessao=${match.sessao_id}`)
-
-  const { data: config } = await supabase
-    .from('config_psicologo')
-    .select('evolution_instance_name')
-    .limit(1).single()
 
   const isCancelar = selectedId === 'CANCELAR'
   const isConfirmar = selectedId === 'CONFIRMAR'
@@ -115,7 +125,7 @@ serve(async (req) => {
     : 'Entendido! 🙏 Sessão cancelada. Entre em contato se quiser remarcar.'
 
   const r = await fetch(
-    `${EVOLUTION_API_URL}/message/sendText/${config!.evolution_instance_name}`,
+    `${EVOLUTION_API_URL}/message/sendText/${tenantConfig.evolution_instance_name}`,
     {
       method: 'POST',
       headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },

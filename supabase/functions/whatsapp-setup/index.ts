@@ -18,10 +18,19 @@ serve(async (req) => {
   const { action } = await req.json() as { action: 'create' | 'qr' | 'status' }
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
+  // Authenticate caller
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+  if (userError || !user) {
+    return new Response(JSON.stringify({ error: 'Não autenticado' }), { status: 401, headers: corsHeaders })
+  }
+
   const { data: config } = await supabase
     .from('config_psicologo')
     .select('id, evolution_instance_name, evolution_token')
-    .limit(1).single()
+    .eq('user_id', user.id)
+    .single()
 
   if (!config) {
     return new Response(JSON.stringify({ error: 'Config não encontrada' }), { status: 404, headers: corsHeaders })
