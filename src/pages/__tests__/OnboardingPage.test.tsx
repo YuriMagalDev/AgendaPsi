@@ -18,6 +18,9 @@ const mockMeios = [
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }),
+    },
     from: vi.fn((table: string) => {
       if (table === 'modalidades_sessao') {
         return {
