@@ -36,6 +36,26 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Config não encontrada' }), { status: 404, headers: corsHeaders })
   }
 
+  // Check subscription allows WhatsApp setup
+  const { data: assinatura } = await supabase
+    .from('assinaturas')
+    .select('plano, status, trial_fim')
+    .eq('user_id', user.id)
+    .single()
+
+  const hoje = new Date().toISOString().slice(0, 10)
+  const podUsarWhatsapp =
+    assinatura?.plano === 'completo' &&
+    (assinatura?.status === 'ativo' ||
+      (assinatura?.status === 'trial' && (assinatura?.trial_fim ?? '') >= hoje))
+
+  if (!podUsarWhatsapp) {
+    return new Response(
+      JSON.stringify({ error: 'Faça upgrade para o plano Completo para usar o WhatsApp.' }),
+      { status: 403, headers: corsHeaders }
+    )
+  }
+
   if (action === 'create') {
     // Skip if instance already exists
     if (config.evolution_instance_name) {
