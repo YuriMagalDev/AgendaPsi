@@ -1,22 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Assinatura } from '@/lib/types'
 
 export function useAssinatura() {
   const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  async function fetchAssinatura() {
-    const { data } = await supabase
-      .from('assinaturas')
-      .select('*')
-      .limit(1)
-      .single()
-    setAssinatura(data as Assinatura | null)
-    setLoading(false)
-  }
+  const fetchAssinatura = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data, error: sbError } = await supabase
+        .from('assinaturas')
+        .select('*')
+        .limit(1)
+        .single()
+      if (sbError && sbError.code !== 'PGRST116') {
+        setError(new Error(sbError.message))
+      } else {
+        setError(null)
+      }
+      setAssinatura(data as Assinatura | null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  useEffect(() => { fetchAssinatura() }, [])
+  useEffect(() => { fetchAssinatura() }, [fetchAssinatura])
 
   const hoje = new Date()
   const trialFim = assinatura?.trial_fim ? new Date(assinatura.trial_fim) : null
@@ -40,6 +50,7 @@ export function useAssinatura() {
   return {
     assinatura,
     loading,
+    error,
     isTrialAtivo,
     diasRestantesTrial,
     podUsarWhatsapp,
