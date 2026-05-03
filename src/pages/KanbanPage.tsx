@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { KanbanFilters } from '@/components/kanban/KanbanFilters'
 import { filterSessoes } from '@/lib/filterSessoes'
@@ -8,6 +8,8 @@ import { startOfWeek, addWeeks, subWeeks, addDays, format, isSameWeek } from 'da
 import { ptBR } from 'date-fns/locale'
 import { useSemana } from '@/hooks/useSemana'
 import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
+import { useAssinatura } from '@/hooks/useAssinatura'
+import { supabase } from '@/lib/supabase'
 import { SemanaGrid } from '@/components/semana/SemanaGrid'
 import { NovaSessaoModal } from '@/components/sessao/NovaSessaoModal'
 import { SessaoPanel } from '@/components/sessao/SessaoPanel'
@@ -43,6 +45,20 @@ export function KanbanPage() {
 
   const { sessoes, loading, refetch } = useSemana(weekStart)
   const { config } = useConfigPsicologo()
+  const { podUsarWhatsapp } = useAssinatura()
+
+  useEffect(() => {
+    if (!podUsarWhatsapp) return
+
+    const channel = supabase
+      .channel('sessoes-kanban-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessoes' }, () => {
+        refetch()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [podUsarWhatsapp])
   const horaInicio = parseHora(config?.horario_inicio, 7)
   const horaFim = parseHora(config?.horario_fim, 21)
 
