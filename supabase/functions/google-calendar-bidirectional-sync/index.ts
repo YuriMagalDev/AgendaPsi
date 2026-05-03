@@ -23,7 +23,7 @@ function getUserIdFromJwt(authHeader: string | null): string | null {
 }
 
 async function decryptToken(supabase: ReturnType<typeof createClient>, vaultId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('vault.decrypted_secret', { secret_id: vaultId })
+  const { data, error } = await supabase.rpc('vault_read_secret', { secret_id: vaultId })
   if (error) throw new Error(`Vault decrypt error: ${error.message}`)
   return data as string
 }

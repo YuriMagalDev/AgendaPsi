@@ -27,7 +27,7 @@ function getUserIdFromJwt(authHeader: string | null): string | null {
 }
 
 async function encryptToken(supabase: ReturnType<typeof createClient>, plaintext: string): Promise<string> {
-  const { data, error } = await supabase.rpc('vault.create_secret', {
+  const { data, error } = await supabase.rpc('vault_create_secret', {
     new_secret: plaintext,
     new_name: `google_refresh_${crypto.randomUUID()}`,
   })
@@ -36,7 +36,7 @@ async function encryptToken(supabase: ReturnType<typeof createClient>, plaintext
 }
 
 async function decryptToken(supabase: ReturnType<typeof createClient>, vaultId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('vault.decrypted_secret', { secret_id: vaultId })
+  const { data, error } = await supabase.rpc('vault_read_secret', { secret_id: vaultId })
   if (error) throw new Error(`Vault decrypt error: ${error.message}`)
   return data as string
 }
@@ -188,7 +188,6 @@ serve(async (req) => {
     await supabase
       .from('config_psicologo')
       .update({ google_calendar_sync_enabled: true, ical_token: icalToken })
-      .eq('user_id', userId)
 
     console.log(`[google-calendar-auth] user=${userId} connected google_user=${googleUserId}`)
     return Response.redirect(`${APP_URL}/configuracoes?google_success=1`)
@@ -213,7 +212,7 @@ serve(async (req) => {
         await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(refreshToken)}`, {
           method: 'POST',
         })
-        await supabase.rpc('vault.delete_secret', { secret_id: tokenRow.refresh_token_encrypted })
+        await supabase.rpc('vault_delete_secret', { secret_id: tokenRow.refresh_token_encrypted })
       } catch (e) {
         console.warn(`[google-calendar-auth] revoke at Google failed: ${e}`)
       }
@@ -223,7 +222,6 @@ serve(async (req) => {
     await supabase
       .from('config_psicologo')
       .update({ google_calendar_sync_enabled: false, google_calendar_bidirectional: false })
-      .eq('user_id', userId)
 
     console.log(`[google-calendar-auth] user=${userId} disconnected`)
     return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders })

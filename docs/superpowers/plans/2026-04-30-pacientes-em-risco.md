@@ -66,10 +66,8 @@ create policy "tenant_isolation" on risco_config
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create index idx_risco_config_user_id on risco_config(user_id);
-
-create trigger trg_set_user_id_risco_config
-  before insert on risco_config
-  for each row execute function public.set_user_id();
+-- NOTE: set_user_id() triggers omitted — will be added by migration 017 (multi-tenant plan).
+-- RLS with check (user_id = auth.uid()) enforces isolation for now.
 
 -- ── 2. risco_templates ───────────────────────────────────────
 create table risco_templates (
@@ -88,10 +86,7 @@ create policy "tenant_isolation" on risco_templates
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create index idx_risco_templates_user_id on risco_templates(user_id);
-
-create trigger trg_set_user_id_risco_templates
-  before insert on risco_templates
-  for each row execute function public.set_user_id();
+-- NOTE: set_user_id() trigger omitted — same rationale as risco_config above.
 
 -- ── 3. risco_followups ───────────────────────────────────────
 create table risco_followups (
@@ -118,10 +113,7 @@ create index idx_risco_followups_user_id    on risco_followups(user_id);
 create index idx_risco_followups_paciente   on risco_followups(paciente_id);
 create index idx_risco_followups_enviado_em on risco_followups(mensagem_enviada_em);
 create index idx_risco_followups_resultado  on risco_followups(resultado);
-
-create trigger trg_set_user_id_risco_followups
-  before insert on risco_followups
-  for each row execute function public.set_user_id();
+-- NOTE: set_user_id() trigger omitted — same rationale as risco_config above.
 
 -- ── 4. RPC get_pacientes_em_risco ────────────────────────────
 create or replace function get_pacientes_em_risco(
@@ -160,16 +152,15 @@ begin
     group by paciente_id
   ),
   trig_cancelamentos as (
-    select distinct s1.paciente_id
-    from sessoes s1
-    join sessoes s2
-      on s1.paciente_id = s2.paciente_id
-      and s1.user_id = p_user_id
-      and s2.user_id = p_user_id
-      and s1.status in ('cancelada','remarcada')
-      and s2.status in ('cancelada','remarcada')
-      and s2.data_hora > s1.data_hora
-      and (s2.data_hora - s1.data_hora) < '30 days'::interval
+    -- Patients with >= p_min_cancelamentos cancelled/rescheduled sessions in past 90 days.
+    -- Simple count in a rolling window; good enough for single-user app.
+    select paciente_id
+    from sessoes
+    where user_id = p_user_id
+      and status in ('cancelada', 'remarcada')
+      and data_hora >= now() - interval '90 days'
+    group by paciente_id
+    having count(*) >= p_min_cancelamentos
   ),
   trig_inatividade as (
     select pu.id as paciente_id
@@ -178,6 +169,8 @@ begin
     where usp.data_hora is null or usp.data_hora < v_cutoff_inatividade
   ),
   trig_falta as (
+    -- Most recent 'faltou' session (within 90 days) with no follow-up booked within the threshold.
+    -- Scoped to 90-day window to avoid surfacing years-old missed sessions.
     select distinct s1.paciente_id
     from sessoes s1
     left join sessoes s2
@@ -187,6 +180,7 @@ begin
       and s2.data_hora <= s1.data_hora + (p_dias_apos_falta || ' days')::interval
     where s1.user_id = p_user_id
       and s1.status = 'faltou'
+      and s1.data_hora >= now() - interval '90 days'
       and s2.id is null
   ),
   all_triggers as (
@@ -1044,4 +1038,4 @@ git commit -m "feat: Plano 7 complete — Pacientes em Risco"
 9. Task 9 — Router + Navigation
 10. Task 10 — Seed templates
 
-**Pré-requisito:** Migration 014 (multi-tenant) aplicada — função `set_user_id()` deve existir.
+**Pré-requisito:** Nenhum bloqueador. `set_user_id()` triggers foram omitidos intencionalmente — serão adicionados pelo Plan 1 (migrations 017-018, multi-tenant) quando esse plano rodar. Enquanto isso, RLS com `with check (user_id = auth.uid())` garante isolamento.

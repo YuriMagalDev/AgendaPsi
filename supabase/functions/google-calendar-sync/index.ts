@@ -32,7 +32,7 @@ function getUserIdFromJwt(authHeader: string | null): string | null {
 }
 
 async function decryptToken(supabase: ReturnType<typeof createClient>, vaultId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('vault.decrypted_secret', { secret_id: vaultId })
+  const { data, error } = await supabase.rpc('vault_read_secret', { secret_id: vaultId })
   if (error) throw new Error(`Vault decrypt error: ${error.message}`)
   return data as string
 }
@@ -149,8 +149,8 @@ serve(async (req) => {
   const callerUserId = getUserIdFromJwt(req.headers.get('Authorization'))
 
   const payload = await req.json() as {
-    action: 'sync_create' | 'sync_update' | 'sync_delete'
-    sessao_id: string
+    action: 'sync_create' | 'sync_update' | 'sync_delete' | 'sync_all'
+    sessao_id?: string
     user_id?: string
   }
 
@@ -245,6 +245,52 @@ serve(async (req) => {
 
       console.log(`[google-calendar-sync] sync_update sessao=${payload.sessao_id}`)
       return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders })
+    }
+
+    if (payload.action === 'sync_all') {
+      // Bulk push all sessions without a sync map row (never pushed to Google)
+      const { data: sessions } = await supabase
+        .from('sessoes')
+        .select('id, data_hora, duracao_minutos, status, notas_checklist, avulso_nome, pacientes(nome), modalidades_sessao(nome)')
+        .not('status', 'in', '(cancelada)')
+        .gte('data_hora', new Date(Date.now() - 90 * 24 * 3600_000).toISOString()) // last 90 days + future
+
+      if (!sessions || sessions.length === 0) {
+        return new Response(JSON.stringify({ ok: true, synced: 0 }), { headers: corsHeaders })
+      }
+
+      // Get already-synced session IDs
+      const { data: syncedRows } = await supabase
+        .from('sessions_sync_map')
+        .select('sessao_id')
+        .eq('user_id', userId)
+
+      const syncedIds = new Set((syncedRows ?? []).map((r: { sessao_id: string }) => r.sessao_id))
+      const unsynced = sessions.filter((s: { id: string }) => !syncedIds.has(s.id))
+
+      let count = 0
+      for (const sessao of unsynced) {
+        try {
+          const googleEventId = await createGoogleEvent(accessToken, calendarId, sessao as SessaoPayload)
+          await supabase.from('sessions_sync_map').upsert({
+            user_id: userId,
+            sessao_id: sessao.id,
+            google_event_id: googleEventId,
+            status_ultima_sync: (sessao as SessaoPayload).status,
+          }, { onConflict: 'user_id,sessao_id' })
+          await supabase.from('sessoes').update({
+            google_calendar_event_id: googleEventId,
+            google_calendar_synced_at: new Date().toISOString(),
+          }).eq('id', sessao.id)
+          count++
+        } catch (e) {
+          console.warn(`[google-calendar-sync] sync_all skip sessao=${sessao.id}: ${e}`)
+        }
+      }
+
+      await supabase.from('google_oauth_tokens').update({ ultimo_sync_em: new Date().toISOString() }).eq('user_id', userId)
+      console.log(`[google-calendar-sync] sync_all user=${userId} pushed=${count} of ${unsynced.length}`)
+      return new Response(JSON.stringify({ ok: true, synced: count }), { headers: corsHeaders })
     }
 
     if (payload.action === 'sync_delete') {

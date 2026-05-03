@@ -68,7 +68,10 @@
       "Bash(xargs cat *)",
       "PowerShell(deno --version)",
       "Bash(where deno *)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__plugin_supabase_supabase__get_logs",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "mcp__plugin_supabase_supabase__deploy_edge_function"
     ]
   }
 }
