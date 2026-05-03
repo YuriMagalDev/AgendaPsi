@@ -378,3 +378,22 @@ export interface RiscoFollowup {
   sessao_agendada_apos: string | null
   reconectado_em: string | null
 }
+
+// ============================================================
+// Assinaturas (Subscriptions)
+// ============================================================
+
+export type Plano = 'basico' | 'completo'
+export type StatusAssinatura = 'trial' | 'ativo' | 'cancelado' | 'inadimplente'
+
+export interface Assinatura {
+  id: string
+  user_id: string
+  plano: Plano
+  status: StatusAssinatura
+  trial_fim: string        // ISO date string yyyy-MM-dd
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  criado_em: string
+  atualizado_em: string
+}
