@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { format, formatDistance } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -8,6 +9,7 @@ import { useMeiosAtendimento } from '@/hooks/useMeiosAtendimento'
 import { useConfigPsicologo } from '@/hooks/useConfigPsicologo'
 import { useReguaCobranca } from '@/hooks/useReguaCobranca'
 import { useGoogleCalendarSync } from '@/hooks/useGoogleCalendarSync'
+import { useAssinatura } from '@/hooks/useAssinatura'
 import { ReguaCobrancaTemplateEditor } from '@/components/regua-cobranca/ReguaCobrancaTemplateEditor'
 import { RiscoConfigSection } from '@/components/configuracoes/RiscoConfigSection'
 import type { EtapaCobranca, ModoCobracaWhatsapp } from '@/lib/types'
@@ -62,6 +64,7 @@ export function ConfiguracoesPage() {
   const { modalidadesSessao, loading: loadingModalidadesSessao, addModalidadeSessao, toggleAtivo: toggleModalidadeSessao } = useModalidadesSessao()
   const { meiosAtendimento, loading: loadingMeiosAtendimento, addMeioAtendimento, toggleAtivo: toggleMeioAtendimento } = useMeiosAtendimento()
   const { config, loading: loadingConfig, updateConfig, refetch: refetchConfig } = useConfigPsicologo()
+  const { podUsarWhatsapp } = useAssinatura()
   const { regras, loading: loadingRegras, fetchRegras, salvarRegra, deletarRegra } = useReguaCobranca()
   const { status: googleSync, loading: loadingGoogleSync, connect: conectarGoogle, disconnect: desconectarGoogle, updateSyncSettings: atualizarGoogleSync, syncNow: sincronizarAgora, error: googleSyncError, refetch: refetchGoogleSync } = useGoogleCalendarSync()
 
@@ -426,90 +429,108 @@ export function ConfiguracoesPage() {
         <div className="flex flex-col gap-4">
 
           {/* WhatsApp */}
-          <SectionCard title="WhatsApp">
-            {!config?.evolution_instance_name && (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-muted">Envie lembretes automáticos com botões de confirmação. Use um número dedicado ao consultório.</p>
-                <button onClick={iniciarConexao} disabled={conectando} className="self-start h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
-                  {conectando ? 'Iniciando...' : 'Conectar WhatsApp'}
-                </button>
-              </div>
-            )}
-
-            {config?.evolution_instance_name && !config.whatsapp_conectado && (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#C17F59]" />
-                  <span className="text-sm font-medium text-[#C17F59]">Aguardando conexão</span>
-                </div>
-                {qrBase64
-                  ? <img src={qrBase64} alt="QR Code WhatsApp" className="w-48 h-48 border border-border rounded-lg mx-auto" />
-                  : (
-                    <button onClick={async () => {
-                      const { data, error } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
-                      if (data?.qr) setQrBase64(data.qr)
-                      else toast.error(`QR não disponível. Resposta: ${JSON.stringify(data?._raw ?? error)}`)
-                    }} className="self-start h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors">
-                      Mostrar QR Code
-                    </button>
-                  )
-                }
-                <p className="text-xs text-muted text-center">Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo → Escaneie o código</p>
-                <button onClick={verificarConexao} className="h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors">
-                  Verificar conexão
-                </button>
-              </div>
-            )}
-
-            {config?.whatsapp_conectado && (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#4CAF82]" />
-                    <span className="text-sm font-medium text-[#4CAF82]">Conectado</span>
-                    <button onClick={reconectar} className="ml-1 text-xs text-muted underline hover:text-[#1C1C1C]">Reconectar</button>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-sm text-muted">Automação ativa</span>
-                    <input type="checkbox" checked={config.automacao_whatsapp_ativa} onChange={e => updateConfig({ automacao_whatsapp_ativa: e.target.checked })} className="sr-only peer" />
-                    <div className="w-10 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                  </label>
-                </div>
-
-                <div className="border-t border-border pt-3">
-                  <p className="text-sm font-medium text-[#1C1C1C] mb-3">Horário dos lembretes</p>
-                  <div className="flex gap-3">
-                    <div className="flex flex-col gap-1 flex-1">
-                      <label className="text-xs text-muted">1º lembrete (noite anterior)</label>
-                      <input type="time" value={configForm.horario_lembrete_1} onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_1: e.target.value }))} className={`${inputClass} w-full`} />
-                    </div>
-                    <div className="flex flex-col gap-1 flex-1">
-                      <label className="text-xs text-muted">2º lembrete (manhã do dia)</label>
-                      <input type="time" value={configForm.horario_lembrete_2} onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_2: e.target.value }))} className={`${inputClass} w-full`} />
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => handleSaveConfig()} disabled={salvandoConfig} className="mt-3 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
-                    {salvandoConfig ? 'Salvando...' : 'Salvar horários'}
+          {podUsarWhatsapp ? (
+            <SectionCard title="WhatsApp">
+              {!config?.evolution_instance_name && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-muted">Envie lembretes automáticos com botões de confirmação. Use um número dedicado ao consultório.</p>
+                  <button onClick={iniciarConexao} disabled={conectando} className="self-start h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
+                    {conectando ? 'Iniciando...' : 'Conectar WhatsApp'}
                   </button>
                 </div>
+              )}
 
-                <div className="border-t border-border pt-3 flex flex-col gap-3">
-                  <p className="text-sm font-medium text-[#1C1C1C]">Testar lembretes</p>
-                  <select value={sessaoTesteId} onChange={e => setSessaoTesteId(e.target.value)} onFocus={carregarSessoesParaTeste} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-bg">
-                    {sessoesDisponiveis.length === 0 && <option value="">Clique para carregar sessões...</option>}
-                    {sessoesDisponiveis.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                  <div className="flex gap-2">
-                    {(['lembrete_noite', 'lembrete_manha'] as const).map(tipo => (
-                      <button key={tipo} onClick={() => triggerTest(tipo)} disabled={testando !== null} className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors disabled:opacity-50">
-                        {testando === tipo ? '...' : tipo === 'lembrete_noite' ? 'Teste noite' : 'Teste manhã'}
+              {config?.evolution_instance_name && !config.whatsapp_conectado && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#C17F59]" />
+                    <span className="text-sm font-medium text-[#C17F59]">Aguardando conexão</span>
+                  </div>
+                  {qrBase64
+                    ? <img src={qrBase64} alt="QR Code WhatsApp" className="w-48 h-48 border border-border rounded-lg mx-auto" />
+                    : (
+                      <button onClick={async () => {
+                        const { data, error } = await supabase.functions.invoke('whatsapp-setup', { body: { action: 'qr' } })
+                        if (data?.qr) setQrBase64(data.qr)
+                        else toast.error(`QR não disponível. Resposta: ${JSON.stringify(data?._raw ?? error)}`)
+                      }} className="self-start h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors">
+                        Mostrar QR Code
                       </button>
-                    ))}
+                    )
+                  }
+                  <p className="text-xs text-muted text-center">Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo → Escaneie o código</p>
+                  <button onClick={verificarConexao} className="h-9 px-4 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors">
+                    Verificar conexão
+                  </button>
+                </div>
+              )}
+
+              {config?.whatsapp_conectado && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#4CAF82]" />
+                      <span className="text-sm font-medium text-[#4CAF82]">Conectado</span>
+                      <button onClick={reconectar} className="ml-1 text-xs text-muted underline hover:text-[#1C1C1C]">Reconectar</button>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-sm text-muted">Automação ativa</span>
+                      <input type="checkbox" checked={config.automacao_whatsapp_ativa} onChange={e => updateConfig({ automacao_whatsapp_ativa: e.target.checked })} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                    </label>
+                  </div>
+
+                  <div className="border-t border-border pt-3">
+                    <p className="text-sm font-medium text-[#1C1C1C] mb-3">Horário dos lembretes</p>
+                    <div className="flex gap-3">
+                      <div className="flex flex-col gap-1 flex-1">
+                        <label className="text-xs text-muted">1º lembrete (noite anterior)</label>
+                        <input type="time" value={configForm.horario_lembrete_1} onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_1: e.target.value }))} className={`${inputClass} w-full`} />
+                      </div>
+                      <div className="flex flex-col gap-1 flex-1">
+                        <label className="text-xs text-muted">2º lembrete (manhã do dia)</label>
+                        <input type="time" value={configForm.horario_lembrete_2} onChange={e => setConfigForm(f => ({ ...f, horario_lembrete_2: e.target.value }))} className={`${inputClass} w-full`} />
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleSaveConfig()} disabled={salvandoConfig} className="mt-3 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
+                      {salvandoConfig ? 'Salvando...' : 'Salvar horários'}
+                    </button>
+                  </div>
+
+                  <div className="border-t border-border pt-3 flex flex-col gap-3">
+                    <p className="text-sm font-medium text-[#1C1C1C]">Testar lembretes</p>
+                    <select value={sessaoTesteId} onChange={e => setSessaoTesteId(e.target.value)} onFocus={carregarSessoesParaTeste} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-bg">
+                      {sessoesDisponiveis.length === 0 && <option value="">Clique para carregar sessões...</option>}
+                      {sessoesDisponiveis.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      {(['lembrete_noite', 'lembrete_manha'] as const).map(tipo => (
+                        <button key={tipo} onClick={() => triggerTest(tipo)} disabled={testando !== null} className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-bg transition-colors disabled:opacity-50">
+                          {testando === tipo ? '...' : tipo === 'lembrete_noite' ? 'Teste noite' : 'Teste manhã'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </SectionCard>
+              )}
+            </SectionCard>
+          ) : (
+            <div className="bg-primary-light rounded-card p-6 border border-primary/20 text-center">
+              <h3 className="font-display text-lg font-semibold text-primary mb-2">
+                WhatsApp Automático
+              </h3>
+              <p className="text-muted text-sm mb-4">
+                Envie lembretes automáticos e receba confirmações direto no Kanban.
+                Disponível no plano Completo.
+              </p>
+              <Link
+                to="/plano"
+                className="inline-block bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Fazer upgrade — R$ 50/mês
+              </Link>
+            </div>
+          )}
 
           {/* Régua de Cobrança */}
           <SectionCard title="Régua de Cobrança">
