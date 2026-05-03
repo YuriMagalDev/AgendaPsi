@@ -58,7 +58,7 @@ export function KanbanPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [podUsarWhatsapp])
+  }, [podUsarWhatsapp, refetch])
   const horaInicio = parseHora(config?.horario_inicio, 7)
   const horaFim = parseHora(config?.horario_fim, 21)
 

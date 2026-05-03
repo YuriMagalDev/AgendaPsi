@@ -10,6 +10,8 @@ export function PlanoPage() {
   const { assinatura, loading, isTrialAtivo, diasRestantesTrial, assinaturaAtiva, refetch } = useAssinatura()
   const [searchParams] = useSearchParams()
 
+  // run once on mount — searchParams and refetch are stable refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const status = searchParams.get('status')
     if (status === 'sucesso') {
