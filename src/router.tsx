@@ -15,6 +15,7 @@ import { FinanceiroPage } from '@/pages/FinanceiroPage'
 import { FinanceiroPacientePage } from '@/pages/FinanceiroPacientePage'
 import { CobrancaPage } from '@/pages/CobrancaPage'
 import { ConfiguracoesPage } from '@/pages/ConfiguracoesPage'
+import { PlanoPage } from '@/pages/PlanoPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           { path: '/financeiro/paciente/:id', element: <FinanceiroPacientePage /> },
           { path: '/cobranca', element: <CobrancaPage /> },
           { path: '/configuracoes', element: <ConfiguracoesPage /> },
+          { path: '/plano', element: <PlanoPage /> },
         ],
       },
     ],
