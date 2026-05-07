@@ -70,6 +70,8 @@ create index idx_risco_followups_enviado_em on risco_followups(mensagem_enviada_
 -- NOTE: set_user_id() trigger omitted — same rationale as risco_config above.
 
 -- ── 4. RPC get_pacientes_em_risco ────────────────────────────
+-- NOTE: filters sessoes via paciente_id IN pacientes_user because sessoes.user_id
+-- does not exist yet (added by multi-tenant Plan 1). Update to user_id filter after Plan 1 runs.
 create or replace function get_pacientes_em_risco(
   p_user_id            uuid,
   p_min_cancelamentos  int default 2,
@@ -96,33 +98,33 @@ begin
   return query
   with
   pacientes_user as (
-    select id, nome, telefone
-    from pacientes
-    where user_id = p_user_id and ativo = true
+    -- NOTE: single-tenant — no user_id on pacientes yet (added by multi-tenant Plan 1)
+    select p.id, p.nome, p.telefone
+    from pacientes p
+    where p.ativo = true
   ),
   ultima_sessao_pp as (
-    select paciente_id, max(data_hora) as data_hora
-    from sessoes where user_id = p_user_id
-    group by paciente_id
+    select s.paciente_id, max(s.data_hora) as data_hora
+    from sessoes s
+    where s.paciente_id in (select pu.id from pacientes_user pu)
+    group by s.paciente_id
   ),
   trig_cancelamentos as (
-    -- Patients with >= p_min_cancelamentos cancelled/rescheduled sessions in past 90 days.
-    select paciente_id
-    from sessoes
-    where user_id = p_user_id
-      and status in ('cancelada', 'remarcada')
-      and data_hora >= now() - interval '90 days'
-    group by paciente_id
+    select s.paciente_id
+    from sessoes s
+    where s.paciente_id in (select pu.id from pacientes_user pu)
+      and s.status in ('cancelada', 'remarcada')
+      and s.data_hora >= now() - interval '90 days'
+    group by s.paciente_id
     having count(*) >= p_min_cancelamentos
   ),
   cancelamentos_count as (
-    -- Actual cancellation count per patient (used in SELECT to return real value, not 0/1).
-    select paciente_id, count(*)::int as cnt
-    from sessoes
-    where user_id = p_user_id
-      and status in ('cancelada', 'remarcada')
-      and data_hora >= now() - interval '90 days'
-    group by paciente_id
+    select s.paciente_id, count(*)::int as cnt
+    from sessoes s
+    where s.paciente_id in (select pu.id from pacientes_user pu)
+      and s.status in ('cancelada', 'remarcada')
+      and s.data_hora >= now() - interval '90 days'
+    group by s.paciente_id
   ),
   trig_inatividade as (
     select pu.id as paciente_id
@@ -131,36 +133,32 @@ begin
     where usp.data_hora is null or usp.data_hora < v_cutoff_inatividade
   ),
   trig_falta as (
-    -- Most recent faltou per patient (within 90 days) with no attended/scheduled follow-up within threshold.
     select distinct s1.paciente_id
     from sessoes s1
     left join sessoes s2
       on s1.paciente_id = s2.paciente_id
-      and s2.user_id = p_user_id
       and s2.data_hora > s1.data_hora
       and s2.data_hora <= s1.data_hora + (p_dias_apos_falta || ' days')::interval
       and s2.status in ('agendada', 'confirmada', 'concluida')
-    where s1.user_id = p_user_id
+    where s1.paciente_id in (select pu.id from pacientes_user pu)
       and s1.status = 'faltou'
       and s1.data_hora >= now() - interval '90 days'
       and s1.data_hora = (
         select max(s3.data_hora)
         from sessoes s3
         where s3.paciente_id = s1.paciente_id
-          and s3.user_id = p_user_id
           and s3.status = 'faltou'
           and s3.data_hora >= now() - interval '90 days'
       )
       and s2.id is null
   ),
   ultima_falta_pp as (
-    -- Most recent faltou date per patient, used to compute dias_apos_falta in SELECT.
-    select paciente_id, max(data_hora) as data_hora
-    from sessoes
-    where user_id = p_user_id
-      and status = 'faltou'
-      and data_hora >= now() - interval '90 days'
-    group by paciente_id
+    select s.paciente_id, max(s.data_hora) as data_hora
+    from sessoes s
+    where s.paciente_id in (select pu.id from pacientes_user pu)
+      and s.status = 'faltou'
+      and s.data_hora >= now() - interval '90 days'
+    group by s.paciente_id
   ),
   all_triggers as (
     select paciente_id, 'cancelamentos' as ttype from trig_cancelamentos union all

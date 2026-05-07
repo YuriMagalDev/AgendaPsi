@@ -24,9 +24,11 @@ export function useRiscoTemplates(options?: { soAtivos?: boolean }) {
 
   async function create(nome: string, corpo: string): Promise<RiscoTemplate> {
     setError(null)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Não autenticado')
     const { data, error: err } = await supabase
       .from('risco_templates')
-      .insert({ nome, corpo })
+      .insert({ nome, corpo, user_id: user.id })
       .select()
       .single()
     if (err) { setError(err.message); throw new Error(err.message) }

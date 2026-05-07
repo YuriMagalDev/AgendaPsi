@@ -2,8 +2,16 @@ import { renderHook, act } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { useRiscoTemplates } from '../useRiscoTemplates'
 
-const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
-vi.mock('@/lib/supabase', () => ({ supabase: { from: mockFrom } }))
+const { mockFrom, mockGetUser } = vi.hoisted(() => ({
+  mockFrom: vi.fn(),
+  mockGetUser: vi.fn(),
+}))
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: mockFrom,
+    auth: { getUser: mockGetUser },
+  },
+}))
 
 const makeChain = (resolved: { data: unknown; error: unknown }) => {
   const c: Record<string, unknown> = {}
@@ -18,7 +26,10 @@ const makeChain = (resolved: { data: unknown; error: unknown }) => {
 }
 
 describe('useRiscoTemplates', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+  })
 
   it('fetches active templates ordered by nome', async () => {
     const data = [{ id: 't1', nome: 'Padrão', corpo: 'Olá {{nome}}', ativo: true }]
@@ -34,7 +45,7 @@ describe('useRiscoTemplates', () => {
     mockFrom.mockReturnValue(chain)
     const { result } = renderHook(() => useRiscoTemplates())
     await act(async () => { await result.current.create('Novo', 'Oi') })
-    expect(chain.insert).toHaveBeenCalledWith({ nome: 'Novo', corpo: 'Oi' })
+    expect(chain.insert).toHaveBeenCalledWith({ nome: 'Novo', corpo: 'Oi', user_id: 'user-1' })
     expect(result.current.error).toBeNull()
   })
 

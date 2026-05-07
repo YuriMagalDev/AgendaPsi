@@ -12,11 +12,22 @@ const makeChain = (resolved: { data: unknown; error: unknown }) => {
   return c
 }
 
-const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
-vi.mock('@/lib/supabase', () => ({ supabase: { from: mockFrom } }))
+const { mockFrom, mockGetUser } = vi.hoisted(() => ({
+  mockFrom: vi.fn(),
+  mockGetUser: vi.fn(),
+}))
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: mockFrom,
+    auth: { getUser: mockGetUser },
+  },
+}))
 
 describe('useRiscoConfig', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+  })
 
   it('fetches existing config', async () => {
     const mockData = { id: 'c1', min_cancelamentos_seguidos: 2, dias_sem_sessao: 30, dias_apos_falta_sem_agendamento: 7 }

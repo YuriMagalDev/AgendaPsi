@@ -9,9 +9,13 @@ const DEFAULTS = {
 }
 
 async function fetchOrCreateConfig(): Promise<RiscoConfig> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Não autenticado')
+
   const { data, error: err } = await supabase
     .from('risco_config')
     .select('*')
+    .eq('user_id', user.id)
     .single()
 
   if (err && err.code !== 'PGRST116') throw new Error(err.message)
@@ -19,7 +23,7 @@ async function fetchOrCreateConfig(): Promise<RiscoConfig> {
   if (!data) {
     const { data: created, error: createErr } = await supabase
       .from('risco_config')
-      .insert(DEFAULTS)
+      .insert({ ...DEFAULTS, user_id: user.id })
       .select()
       .single()
     if (createErr) throw new Error(createErr.message)

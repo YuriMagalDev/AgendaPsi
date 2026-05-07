@@ -52,6 +52,16 @@ vi.mock('@/hooks/useRiscoTemplates', () => ({
     remove: vi.fn(),
   }),
 }))
+vi.mock('@/hooks/useAssinatura', () => ({
+  useAssinatura: () => ({
+    assinatura: null,
+    loading: false,
+    isTrialAtivo: true,
+    assinaturaAtiva: false,
+    podUsarWhatsapp: true,
+    diasRestantesTrial: 14,
+  }),
+}))
 vi.mock('@/hooks/useGoogleCalendarSync', () => ({
   useGoogleCalendarSync: vi.fn(() => ({
     status: { connected: false, sync_enabled: false, bidirectional_enabled: false, calendario_nome: null, google_user_id: null, ultimo_sync_em: null },
@@ -67,18 +77,24 @@ vi.mock('@/hooks/useGoogleCalendarSync', () => ({
 
 import { ConfiguracoesPage } from '../ConfiguracoesPage'
 
+async function renderAndGoToIntegracoes() {
+  render(<ConfiguracoesPage />)
+  const tab = await screen.findByRole('button', { name: /integrações/i })
+  await userEvent.click(tab)
+}
+
 describe('ConfiguracoesPage — Google Calendar section', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('renders Google Calendar section heading', async () => {
-    render(<ConfiguracoesPage />)
+    await renderAndGoToIntegracoes()
     await waitFor(() => expect(screen.getByText('Google Calendar')).toBeInTheDocument())
   })
 
   it('shows connect button when not connected', async () => {
-    render(<ConfiguracoesPage />)
+    await renderAndGoToIntegracoes()
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /conectar google calendar/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^conectar$/i })).toBeInTheDocument()
     )
   })
 
@@ -91,8 +107,8 @@ describe('ConfiguracoesPage — Google Calendar section', () => {
       connect: connectFn, disconnect: vi.fn(), updateSyncSettings: vi.fn(), syncNow: vi.fn(), refetch: vi.fn(),
     } as any)
 
-    render(<ConfiguracoesPage />)
-    const btn = await screen.findByRole('button', { name: /conectar google calendar/i })
+    await renderAndGoToIntegracoes()
+    const btn = await screen.findByRole('button', { name: /^conectar$/i })
     await userEvent.click(btn)
     expect(connectFn).toHaveBeenCalledTimes(1)
   })

@@ -206,3 +206,13 @@ Master reference: `docs/superpowers/plans/EXECUCAO.md`
 | `supabase/migrations/021_pacientes_em_risco.sql` (tables `risco_config`, `risco_templates`, `risco_followups`) | Plan 1 — add `set_user_id()` triggers (currently omitted); tables already have `user_id` + RLS |
 | `supabase/functions/send-followup/index.ts` (sessions query, line ~66) | Plan 1 — re-add `.eq('user_id', user.id)` to `sessoes` query once `sessoes.user_id` column exists |
 | RPC `get_pacientes_em_risco` (`pacientes_user` CTE) | Plan 1 — restore `WHERE p.user_id = p_user_id` filter once `pacientes.user_id` column exists (currently omitted; single-tenant workaround) |
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

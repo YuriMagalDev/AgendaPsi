@@ -1,9 +1,19 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useRiscoTemplates } from '@/hooks/useRiscoTemplates'
 import type { PacienteEmRisco } from '@/lib/types'
+
+const TEMPLATE_PADRAO_ID = '__padrao__'
+const TEMPLATE_PADRAO_CORPO =
+  'Oi {{nome}}, tudo bem? Notei que faz {{dias_ausente}} dias que não marcamos uma sessão. Gostaria de retomar? Estou à disposição! 😊'
+
+const VARIAVEIS = [
+  { label: 'Nome', valor: '{{nome}}' },
+  { label: 'Dias ausente', valor: '{{dias_ausente}}' },
+  { label: 'Última sessão', valor: '{{ultima_sessao}}' },
+]
 
 interface Props {
   paciente: PacienteEmRisco
@@ -31,25 +41,41 @@ function aplicarVariaveis(texto: string, paciente: PacienteEmRisco): string {
 
 export function SendFollowupModal({ paciente, onClose, onSent }: Props) {
   const { templates, loading: templatesLoading } = useRiscoTemplates()
-  const [templateId, setTemplateId] = useState<string>('')
+  const [templateId, setTemplateId] = useState<string>(TEMPLATE_PADRAO_ID)
   const [personalizado, setPersonalizado] = useState(false)
   const [mensagemCustom, setMensagemCustom] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const templateSelecionado = templates.find(t => t.id === templateId)
-  const textoBase = personalizado ? mensagemCustom : (templateSelecionado?.corpo ?? '')
+  const corpoTemplate = templateId === TEMPLATE_PADRAO_ID ? TEMPLATE_PADRAO_CORPO : (templateSelecionado?.corpo ?? '')
+  const textoBase = personalizado ? mensagemCustom : corpoTemplate
   const preview = textoBase ? aplicarVariaveis(textoBase, paciente) : ''
 
   const semTelefone = !paciente.telefone
 
+  function inserirVariavel(valor: string) {
+    const el = textareaRef.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const nova = mensagemCustom.slice(0, start) + valor + mensagemCustom.slice(end)
+    setMensagemCustom(nova)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start + valor.length, start + valor.length)
+    })
+  }
+
   async function handleEnviar() {
     setEnviando(true)
     try {
+      const isPadrao = !personalizado && templateId === TEMPLATE_PADRAO_ID
       const { error } = await supabase.functions.invoke('send-followup', {
         body: {
           paciente_id: paciente.id,
-          template_id: personalizado ? null : (templateId || null),
-          custom_message: personalizado ? mensagemCustom : null,
+          template_id: (!personalizado && templateId !== TEMPLATE_PADRAO_ID) ? templateId : null,
+          custom_message: (personalizado || isPadrao) ? (personalizado ? mensagemCustom : TEMPLATE_PADRAO_CORPO) : null,
         },
       })
       if (error) throw error
@@ -61,6 +87,8 @@ export function SendFollowupModal({ paciente, onClose, onSent }: Props) {
       setEnviando(false)
     }
   }
+
+  const podeEnviar = personalizado ? mensagemCustom.trim().length > 0 : (templateId !== '')
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -84,7 +112,7 @@ export function SendFollowupModal({ paciente, onClose, onSent }: Props) {
               disabled={personalizado || templatesLoading}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface text-[#1C1C1C] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              <option value="">Selecione um template</option>
+              <option value={TEMPLATE_PADRAO_ID}>Reconexão Padrão</option>
               {templates.map(t => (
                 <option key={t.id} value={t.id}>{t.nome}</option>
               ))}
@@ -102,13 +130,28 @@ export function SendFollowupModal({ paciente, onClose, onSent }: Props) {
           </label>
 
           {personalizado && (
-            <div>
-              <label className="text-sm font-medium text-[#1C1C1C] block mb-1.5">Mensagem</label>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-[#1C1C1C]">Mensagem</label>
+                <div className="flex gap-1.5">
+                  {VARIAVEIS.map(v => (
+                    <button
+                      key={v.valor}
+                      type="button"
+                      onClick={() => inserirVariavel(v.valor)}
+                      className="px-2 py-0.5 text-xs rounded border border-border bg-[#F7F5F2] text-muted hover:text-[#1C1C1C] hover:border-primary/40 transition-colors font-mono"
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <textarea
+                ref={textareaRef}
                 value={mensagemCustom}
                 onChange={e => setMensagemCustom(e.target.value)}
                 rows={4}
-                placeholder="Digite a mensagem. Use {{nome}}, {{dias_ausente}}, {{ultima_sessao}}"
+                placeholder="Digite a mensagem..."
                 className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface text-[#1C1C1C] resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -141,7 +184,7 @@ export function SendFollowupModal({ paciente, onClose, onSent }: Props) {
           ) : (
             <button
               onClick={handleEnviar}
-              disabled={enviando || (!personalizado && !templateId) || (personalizado && !mensagemCustom.trim())}
+              disabled={enviando || !podeEnviar}
               className="px-4 h-9 text-sm bg-primary text-white font-medium rounded-lg hover:bg-primary/90 disabled:opacity-40 transition-colors"
             >
               {enviando ? 'Enviando...' : 'Enviar via WhatsApp'}
