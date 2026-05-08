@@ -1,14 +1,13 @@
 import { Button } from '@/components/ui/button'
-import { MessageCircle, SkipForward, X } from 'lucide-react'
+import { MessageCircle, SkipForward } from 'lucide-react'
 
 interface Props {
   onConfigurar: () => void
   onDepois: () => void
-  onNaoUsar: () => void
   onBack: () => void
 }
 
-export function StepWhatsapp({ onConfigurar, onDepois, onNaoUsar, onBack }: Props) {
+export function StepWhatsapp({ onConfigurar, onDepois, onBack }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-display text-xl font-semibold text-[#1C1C1C]">WhatsApp</h2>
@@ -43,15 +42,6 @@ export function StepWhatsapp({ onConfigurar, onDepois, onNaoUsar, onBack }: Prop
         >
           <SkipForward size={16} />
           Configurar depois
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onNaoUsar}
-          className="text-muted flex items-center gap-2"
-        >
-          <X size={16} />
-          Não usar automação
         </Button>
       </div>
 

@@ -299,7 +299,15 @@ export function ChecklistPage() {
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Checklist do dia</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Checklist do dia</h1>
+            <div className="group relative">
+              <button type="button" className="w-5 h-5 rounded-full bg-border text-muted text-xs font-bold flex items-center justify-center hover:bg-primary hover:text-white transition-colors">?</button>
+              <div className="absolute left-6 top-0 w-64 bg-[#1C1C1C] text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 shadow-lg">
+                Revise todas as sessões de hoje: marque como concluída, faltou ou cancelada, e registre pagamentos.
+              </div>
+            </div>
+          </div>
           <p className="text-sm text-muted capitalize">{tituloData}</p>
         </div>
         {totalAlteracoes > 0 && (

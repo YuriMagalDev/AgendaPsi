@@ -130,12 +130,33 @@ export function PacienteDetalhePage() {
       </div>
 
       {/* Active contract */}
-      {contrato && (
-        <div className="bg-primary-light rounded-card border border-primary/20 p-4 mb-4 flex items-center gap-2">
-          <Banknote size={16} className="text-primary shrink-0" />
-          <p className="text-sm text-primary font-medium">
-            {contratoDescricao(contrato.tipo, contrato.valor, contrato.qtd_sessoes, contrato.dia_vencimento)}
-          </p>
+      {contrato ? (
+        <div className="bg-primary-light rounded-card border border-primary/20 p-4 mb-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Banknote size={16} className="text-primary shrink-0" />
+            <p className="text-sm text-primary font-medium truncate">
+              {contratoDescricao(contrato.tipo, contrato.valor, contrato.qtd_sessoes, contrato.dia_vencimento)}
+            </p>
+          </div>
+          <Link
+            to={`/pacientes/${id}/editar`}
+            className="shrink-0 text-xs text-primary border border-primary/30 px-2.5 py-1 rounded-lg hover:bg-primary/10 transition-colors"
+          >
+            Editar
+          </Link>
+        </div>
+      ) : (
+        <div className="bg-bg rounded-card border border-border p-4 mb-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Banknote size={16} className="text-muted shrink-0" />
+            <p className="text-sm text-muted">Nenhuma cobrança definida</p>
+          </div>
+          <Link
+            to={`/pacientes/${id}/editar`}
+            className="shrink-0 text-xs text-primary border border-primary/30 px-2.5 py-1 rounded-lg hover:bg-primary-light transition-colors"
+          >
+            Definir cobrança
+          </Link>
         </div>
       )}
 

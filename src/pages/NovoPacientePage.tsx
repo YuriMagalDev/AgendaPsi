@@ -243,7 +243,17 @@ export function NovoPacientePage() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, handleInvalid)} noValidate className="flex flex-col gap-5">
+      <form
+        onSubmit={handleSubmit(onSubmit, handleInvalid)}
+        noValidate
+        className="flex flex-col gap-5"
+        onKeyDown={e => {
+          if (e.key === 'Enter' && step < 3) {
+            e.preventDefault()
+            handleNext()
+          }
+        }}
+      >
 
         {/* ─── Step 1: Dados pessoais ─── */}
         {step === 1 && (

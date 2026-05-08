@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, ChevronRight, UserRound, Upload } from 'lucide-react'
+import { Plus, ChevronRight, UserRound, Upload, UserPlus } from 'lucide-react'
 import { usePacientes } from '@/hooks/usePacientes'
 import { PatientFilters } from '@/components/pacientes/PatientFilters'
 import { filterPacientes, DEFAULT_PACIENTE_FILTERS } from '@/lib/filterPacientes'
@@ -102,10 +102,10 @@ export function PacientesPage() {
           </button>
           <Link
             to="/pacientes/novo"
-            className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Plus size={16} />
-            Novo
+            Novo paciente
           </Link>
         </div>
       </div>
@@ -136,7 +136,11 @@ export function PacientesPage() {
             }
           </p>
           {!filters.search && !filters.modalidadeId && !filters.tipoContrato && (
-            <Link to="/pacientes/novo" className="inline-block mt-4 text-sm text-primary font-medium hover:underline">
+            <Link
+              to="/pacientes/novo"
+              className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              <UserPlus size={16} />
               Cadastrar primeiro paciente
             </Link>
           )}

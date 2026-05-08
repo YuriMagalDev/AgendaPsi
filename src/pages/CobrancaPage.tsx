@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useReguaCobranca } from '@/hooks/useReguaCobranca'
 import type { CobrancaEnviadaView, SessaoParaCobranca, StatusCobranca, EtapaCobranca } from '@/lib/types'
 
@@ -103,10 +104,17 @@ export function CobrancaPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="font-display text-2xl font-semibold text-[#1C1C1C]">Cobrança WhatsApp</h1>
         <p className="text-sm text-[#7A7A7A] mt-0.5">
           Régua de lembretes para sessões com pagamento pendente
+        </p>
+      </div>
+
+      <div className="mb-5 bg-[#E8F4F4] border border-primary/20 rounded-xl px-4 py-3 text-sm text-primary">
+        <p className="font-medium mb-1">Como funciona</p>
+        <p className="text-primary/80 text-xs leading-relaxed">
+          Sessões concluídas sem pagamento aparecem aqui. Expanda o card para enviar lembretes via WhatsApp em etapas (D+1, D+7...) e marque como pago quando receber.
         </p>
       </div>
 
@@ -147,17 +155,17 @@ export function CobrancaPage() {
               const isExpanded = expandedId === sessao.id
               return (
                 <div key={sessao.id} className="bg-white rounded-xl border border-[#E4E0DA]">
-                  <div className="flex items-center px-4 py-3 gap-2">
-                    <button
-                      className="flex-1 flex items-center justify-between text-left"
-                      onClick={() => setExpandedId(isExpanded ? null : sessao.id)}
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-[#1C1C1C]">{nome}</p>
-                        <p className="text-xs text-[#7A7A7A] mt-0.5">
-                          {dataFormatada(sessao.data_hora)} · {moeda(sessao.valor_cobrado)}
-                        </p>
-                      </div>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                    onClick={() => setExpandedId(isExpanded ? null : sessao.id)}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-[#1C1C1C]">{nome}</p>
+                      <p className="text-xs text-[#7A7A7A] mt-0.5">
+                        {dataFormatada(sessao.data_hora)} · {moeda(sessao.valor_cobrado)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <span
                         className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                           sessao.etapas_pendentes.length > 0
@@ -167,15 +175,9 @@ export function CobrancaPage() {
                       >
                         {sessao.etapas_pendentes.length} lembrete{sessao.etapas_pendentes.length !== 1 ? 's' : ''} pendente{sessao.etapas_pendentes.length !== 1 ? 's' : ''}
                       </span>
-                    </button>
-                    <button
-                      onClick={() => handleMarcarPago(sessao.id)}
-                      disabled={markingPaidId === sessao.id}
-                      className="shrink-0 h-7 px-3 rounded-lg border border-[#4CAF82] text-[#4CAF82] text-xs font-medium disabled:opacity-50 hover:bg-[#4CAF82]/5 transition-colors"
-                    >
-                      {markingPaidId === sessao.id ? 'Salvando...' : 'Marcar como Pago'}
-                    </button>
-                  </div>
+                      {isExpanded ? <ChevronUp size={16} className="text-[#7A7A7A]" /> : <ChevronDown size={16} className="text-[#7A7A7A]" />}
+                    </div>
+                  </button>
 
                   {isExpanded && (
                     <div className="border-t border-[#E4E0DA] px-4 py-3 space-y-2">
@@ -203,6 +205,15 @@ export function CobrancaPage() {
                           )
                         })
                       )}
+                      <div className="pt-2 border-t border-[#E4E0DA]">
+                        <button
+                          onClick={() => handleMarcarPago(sessao.id)}
+                          disabled={markingPaidId === sessao.id}
+                          className="w-full h-9 rounded-lg border border-[#4CAF82] text-[#4CAF82] text-sm font-medium disabled:opacity-50 hover:bg-[#4CAF82]/5 transition-colors"
+                        >
+                          {markingPaidId === sessao.id ? 'Salvando...' : '✓ Marcar como Pago'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

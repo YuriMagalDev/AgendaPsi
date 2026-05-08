@@ -7,7 +7,7 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!
 const GOOGLE_REDIRECT_URI  = Deno.env.get('GOOGLE_REDIRECT_URI')!
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const APP_URL              = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
+const APP_URL              = Deno.env.get('APP_URL') ?? Deno.env.get('NEXT_PUBLIC_SITE_URL') ?? 'http://localhost:5173'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

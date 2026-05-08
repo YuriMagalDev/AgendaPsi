@@ -91,7 +91,6 @@ export function OnboardingPage() {
             <StepWhatsapp
               onConfigurar={() => finalize('agora')}
               onDepois={() => finalize('depois')}
-              onNaoUsar={() => finalize('nao')}
               onBack={() => setStep(3)}
             />
           )}

@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { supabase } from '@/lib/supabase'
 
 const schema = z.object({
   nome: z.string().min(2, 'Informe seu nome'),
@@ -22,6 +24,7 @@ export function StepDados({ onNext }: Props) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<StepDadosData>({
     resolver: zodResolver(schema),
@@ -31,6 +34,13 @@ export function StepDados({ onNext }: Props) {
       horario_checklist: '18:00',
     },
   })
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const nome = data.user?.user_metadata?.nome
+      if (nome) setValue('nome', nome)
+    })
+  }, [])
 
   return (
     <form onSubmit={handleSubmit(onNext)} className="flex flex-col gap-4">
@@ -42,14 +52,17 @@ export function StepDados({ onNext }: Props) {
         {errors.nome && <span className="text-xs text-[#E07070]">{errors.nome.message}</span>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="horario_inicio">Início</Label>
-          <Input id="horario_inicio" type="time" {...register('horario_inicio')} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="horario_fim">Fim</Label>
-          <Input id="horario_fim" type="time" {...register('horario_fim')} />
+      <div>
+        <p className="text-xs text-muted mb-2">Horário da sua jornada de trabalho</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="horario_inicio">Início</Label>
+            <Input id="horario_inicio" type="time" {...register('horario_inicio')} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="horario_fim">Fim</Label>
+            <Input id="horario_fim" type="time" {...register('horario_fim')} />
+          </div>
         </div>
       </div>
 
