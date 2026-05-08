@@ -119,21 +119,30 @@ serve(async (req) => {
     }
   }
 
-  // 4. In production mode: insert confirmacao row (unique index prevents double-send)
+  // 4. Insert confirmacao row so the webhook can match the reply.
+  // In test mode: delete any existing row first (avoids unique constraint clash).
+  // In production mode: unique index prevents double-send.
   let confirmacaoId: string | null = null
-  if (!test) {
-    const { data: confirmacao, error: insertError } = await supabase
+  if (test) {
+    await supabase
       .from('confirmacoes_whatsapp')
-      .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false, user_id: sessao.user_id })
-      .select('id')
-      .single()
-
-    if (insertError?.code === '23505') {
-      return new Response(JSON.stringify({ skipped: 'já enviado' }), { headers: corsHeaders })
-    }
-    if (insertError) throw insertError
-    confirmacaoId = confirmacao!.id
+      .delete()
+      .eq('sessao_id', sessao_id)
+      .eq('tipo_lembrete', tipo)
+      .is('confirmado', null)
   }
+
+  const { data: confirmacao, error: insertError } = await supabase
+    .from('confirmacoes_whatsapp')
+    .insert({ sessao_id, tipo_lembrete: tipo, mensagem_enviada_em: new Date().toISOString(), lida: false, remarcacao_solicitada: false, user_id: sessao.user_id })
+    .select('id')
+    .single()
+
+  if (insertError?.code === '23505') {
+    return new Response(JSON.stringify({ skipped: 'já enviado' }), { headers: corsHeaders })
+  }
+  if (insertError) throw insertError
+  confirmacaoId = confirmacao!.id
 
   // 5. Send via sendText — button messages silently drop on personal WhatsApp (Baileys)
   const evoResp = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instance}`, {

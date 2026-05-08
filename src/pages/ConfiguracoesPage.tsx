@@ -15,6 +15,7 @@ import { RiscoConfigSection } from '@/components/configuracoes/RiscoConfigSectio
 import type { EtapaCobranca, ModoCobracaWhatsapp } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2 } from 'lucide-react'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 
 const inputClass = "h-9 px-3 rounded-lg border border-border bg-surface text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
 
@@ -389,7 +390,7 @@ export function ConfiguracoesPage() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-1 border-t border-border">
-                  <input placeholder="Emoji" value={emojiModalidadeSessao} onChange={e => setEmojiModalidadeSessao(e.target.value)} className={`${inputClass} w-16 text-center`} maxLength={4} />
+                  <EmojiPicker value={emojiModalidadeSessao} onChange={setEmojiModalidadeSessao} />
                   <input placeholder="Nome da modalidade" value={nomeModalidadeSessao} onChange={e => setNomeModalidadeSessao(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddModalidadeSessao())} className={`${inputClass} flex-1`} />
                   <button onClick={handleAddModalidadeSessao} disabled={!nomeModalidadeSessao.trim() || !emojiModalidadeSessao.trim()} className="h-9 px-3 rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary/90 transition-colors"><Plus size={16} /></button>
                 </div>
@@ -414,7 +415,7 @@ export function ConfiguracoesPage() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-1 border-t border-border">
-                  <input placeholder="Emoji" value={emojiMeioAtendimento} onChange={e => setEmojiMeioAtendimento(e.target.value)} className={`${inputClass} w-16 text-center`} maxLength={4} />
+                  <EmojiPicker value={emojiMeioAtendimento} onChange={setEmojiMeioAtendimento} />
                   <input placeholder="Nome do meio" value={nomeMeioAtendimento} onChange={e => setNomeMeioAtendimento(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddMeioAtendimento())} className={`${inputClass} flex-1`} />
                   <button onClick={handleAddMeioAtendimento} disabled={!nomeMeioAtendimento.trim() || !emojiMeioAtendimento.trim()} className="h-9 px-3 rounded-lg bg-primary text-white disabled:opacity-40 hover:bg-primary/90 transition-colors"><Plus size={16} /></button>
                 </div>

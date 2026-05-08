@@ -54,6 +54,9 @@ export function SessaoCard({ sessao, onClick, compact }: Props) {
               {sessao.valor_cobrado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           )}
+          {sessao.status === 'concluida' && sessao.pago && (
+            <span className="text-xs text-[#4CAF82] font-medium">✓ pago</span>
+          )}
           {sessao.status === 'concluida' && !sessao.pago && (
             <span className="text-xs text-[#C17F59] font-medium">· pendente</span>
           )}

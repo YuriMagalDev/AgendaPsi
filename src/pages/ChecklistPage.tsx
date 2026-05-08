@@ -214,6 +214,7 @@ export function ChecklistPage() {
   }, [])
 
   const pendentes = sessoes.filter(s => s.status === 'agendada' || s.status === 'confirmada')
+  const finalizadas = sessoes.filter(s => s.status !== 'agendada' && s.status !== 'confirmada')
 
   useEffect(() => {
     if (!loading) {
@@ -367,6 +368,27 @@ export function ChecklistPage() {
               semConfirmacao={sessoesComAlerta.has(s.id)}
             />
           ))}
+        </div>
+      )}
+
+      {!loading && !error && finalizadas.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Já registradas</p>
+          <div className="flex flex-col gap-3">
+            {finalizadas.map(s => (
+              <SessaoChecklist
+                key={s.id}
+                sessao={s}
+                update={updates.find(u => u.id === s.id)}
+                pagamento={pagamentos.find(p => p.id === s.id)}
+                onUpdate={handleUpdate}
+                onPagamento={handlePagamento}
+                onRemarcar={() => setRemarcarSessao(s)}
+                disabled={salvandoRemarcar}
+                semConfirmacao={sessoesComAlerta.has(s.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 

@@ -19,11 +19,23 @@ interface Props {
   onConfirmar: (novaDataHora: string) => void
 }
 
+function toLocalISO(iso: string): string {
+  const d = new Date(iso)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
 export function RemarcarModal({ sessao, onClose, onConfirmar }: Props) {
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
   const [selecionado, setSelecionado] = useState<string | null>(null)
+  const [modoSimples, setModoSimples] = useState(false)
+  const [dataHoraManual, setDataHoraManual] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    return toLocalISO(d.toISOString())
+  })
   const { sessoes, loading } = useSemana(weekStart)
   const { config } = useConfigPsicologo()
   const horaInicio = parseHora(config?.horario_inicio, 7)
@@ -44,70 +56,101 @@ export function RemarcarModal({ sessao, onClose, onConfirmar }: Props) {
           <div>
             <p className="font-display font-semibold text-[#1C1C1C]">Remarcar sessão</p>
             <p className="text-xs text-muted mt-0.5">
-              {nomePaciente} · Clique em um horário livre na agenda
+              {nomePaciente}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="text-muted hover:text-[#1C1C1C] transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { setModoSimples(m => !m); setSelecionado(null) }}
+              className="text-xs text-primary hover:underline"
+            >
+              {modoSimples ? 'Ver agenda' : 'Inserir data'}
+            </button>
+            <button onClick={onClose} aria-label="Fechar" className="text-muted hover:text-[#1C1C1C] transition-colors">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Week navigation */}
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-border flex-shrink-0">
-          <button
-            onClick={() => setWeekStart(w => subWeeks(w, 1))}
-            className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-sm font-medium text-[#1C1C1C] capitalize min-w-[160px] text-center">
-            {labelSemana}
-          </span>
-          <button
-            onClick={() => setWeekStart(w => addWeeks(w, 1))}
-            className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-
-        {/* Calendar grid */}
-        <div className="flex-1 overflow-auto">
-          <SemanaGrid
-            weekStart={weekStart}
-            sessoes={sessoes}
-            loading={loading}
-            horaInicio={horaInicio}
-            horaFim={horaFim}
-            onCelulaClick={setSelecionado}
-            onSessaoClick={() => {}}
-          />
-        </div>
-
-        {/* Confirmation bar — appears when a cell is selected */}
-        {selecionado && (
-          <div className="px-5 py-4 border-t border-border flex items-center justify-between flex-shrink-0 bg-primary/5">
-            <p className="text-sm text-[#1C1C1C]">
-              Remarcar para{' '}
-              <span className="font-medium">
-                {format(new Date(selecionado), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-              </span>
-            </p>
-            <div className="flex gap-2">
+        {modoSimples ? (
+          /* Simple datetime-local mode */
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-6">
+            <p className="text-sm text-muted text-center">Escolha a nova data e horário</p>
+            <input
+              type="datetime-local"
+              value={dataHoraManual}
+              onChange={e => setDataHoraManual(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-border text-sm outline-none focus:border-primary w-full max-w-xs"
+            />
+            <button
+              disabled={!dataHoraManual}
+              onClick={() => onConfirmar(dataHoraManual)}
+              className="w-full max-w-xs h-10 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-40 transition-colors"
+            >
+              Confirmar remarcação
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Week navigation */}
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-border flex-shrink-0">
               <button
-                onClick={() => setSelecionado(null)}
-                className="text-sm text-muted hover:text-[#1C1C1C] px-3 py-1.5 rounded-lg border border-border transition-colors"
+                onClick={() => setWeekStart(w => subWeeks(w, 1))}
+                className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
               >
-                Limpar
+                <ChevronLeft size={18} />
               </button>
+              <span className="text-sm font-medium text-[#1C1C1C] capitalize min-w-[160px] text-center">
+                {labelSemana}
+              </span>
               <button
-                onClick={() => onConfirmar(selecionado)}
-                className="text-sm font-medium px-4 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+                onClick={() => setWeekStart(w => addWeeks(w, 1))}
+                className="p-1.5 rounded-lg text-muted hover:text-[#1C1C1C] hover:bg-bg transition-colors"
               >
-                Confirmar remarcação
+                <ChevronRight size={18} />
               </button>
             </div>
-          </div>
+
+            {/* Calendar grid */}
+            <div className="flex-1 overflow-auto">
+              <SemanaGrid
+                weekStart={weekStart}
+                sessoes={sessoes}
+                loading={loading}
+                horaInicio={horaInicio}
+                horaFim={horaFim}
+                onCelulaClick={setSelecionado}
+                onSessaoClick={() => {}}
+              />
+            </div>
+
+            {/* Confirmation bar */}
+            {selecionado && (
+              <div className="px-5 py-4 border-t border-border flex items-center justify-between flex-shrink-0 bg-primary/5">
+                <p className="text-sm text-[#1C1C1C]">
+                  Remarcar para{' '}
+                  <span className="font-medium">
+                    {format(new Date(selecionado), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelecionado(null)}
+                    className="text-sm text-muted hover:text-[#1C1C1C] px-3 py-1.5 rounded-lg border border-border transition-colors"
+                  >
+                    Limpar
+                  </button>
+                  <button
+                    onClick={() => onConfirmar(selecionado)}
+                    className="text-sm font-medium px-4 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+                  >
+                    Confirmar remarcação
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

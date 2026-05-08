@@ -53,7 +53,8 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
   const [editMeio, setEditMeio] = useState(sessao.meio_atendimento_id)
   const { modalidadesSessao } = useModalidadesSessao()
   const { meiosAtendimento } = useMeiosAtendimento()
-  const podeEditar = sessao.status === 'agendada' || sessao.status === 'confirmada'
+  const podeEditar = true
+  const editandoFinalizada = editando && sessao.status !== 'agendada' && sessao.status !== 'confirmada'
 
   const acoes = STATUS_ACOES[sessao.status]
   const nomePaciente = sessao.pacientes?.nome ?? sessao.avulso_nome ?? 'Avulso'
@@ -196,6 +197,11 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
           {editando ? (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-muted font-medium uppercase tracking-wide">Editar sessão</p>
+              {editandoFinalizada && (
+                <p className="text-xs text-[#C17F59] bg-[#C17F59]/10 px-3 py-2 rounded-lg">
+                  Sessão já finalizada — edite apenas para corrigir erros.
+                </p>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-[#1C1C1C]">Data e horário</label>
@@ -307,7 +313,16 @@ export function SessaoPanel({ sessao, onClose, onUpdate }: Props) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted text-center py-2">Sessão já finalizada.</p>
+                <p className="text-sm text-muted text-center py-2">
+                  Sessão finalizada.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setEditando(true)}
+                    className="text-primary underline hover:no-underline"
+                  >
+                    Editar por erro
+                  </button>
+                </p>
               )}
 
               {mostrarPagamento && (

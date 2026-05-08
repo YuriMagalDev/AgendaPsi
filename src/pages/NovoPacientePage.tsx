@@ -121,10 +121,23 @@ export function NovoPacientePage() {
   }
 
   const adicionarSlot = () =>
-    setSlots(p => [...p, { nome: '', dia_semana: 1, horario: '09:00', is_pacote: false, intervalo_semanas: 1, duracao_minutos: duracaoPadrao }])
+    setSlots(p => [...p, { nome: 'Segunda 09:00', dia_semana: 1, horario: '09:00', is_pacote: false, intervalo_semanas: 1, duracao_minutos: duracaoPadrao }])
   const removerSlot = (i: number) => setSlots(p => p.filter((_, j) => j !== i))
   const atualizarSlot = (i: number, campo: keyof SlotSemanalInput, val: unknown) =>
-    setSlots(p => p.map((s, j) => j === i ? { ...s, [campo]: val } : s))
+    setSlots(p => p.map((s, j) => {
+      if (j !== i) return s
+      const updated = { ...s, [campo]: val }
+      // Auto-fill nome when day or time changes and nome matches a previous auto-fill pattern
+      if (campo === 'dia_semana' || campo === 'horario') {
+        const diaLabel = DIAS.find(d => d.value === (campo === 'dia_semana' ? val as number : s.dia_semana))?.label ?? ''
+        const hora = campo === 'horario' ? val as string : s.horario
+        const autoNome = `${diaLabel} ${hora}`
+        const prevDia = DIAS.find(d => d.value === s.dia_semana)?.label ?? ''
+        const prevAuto = `${prevDia} ${s.horario}`
+        if (s.nome === prevAuto || s.nome === '') updated.nome = autoNome
+      }
+      return updated
+    }))
 
   const algumConflito = slots.some(s => checkSlotConflict(s, allActiveSlots) !== null)
 
@@ -329,7 +342,7 @@ export function NovoPacientePage() {
             {/* Horários semanais */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide">Horários semanais</p>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide">Horários semanais <span className="normal-case font-normal">(opcional)</span></p>
                 <button type="button" onClick={adicionarSlot} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors">
                   <Plus size={14} />
                   Adicionar horário
