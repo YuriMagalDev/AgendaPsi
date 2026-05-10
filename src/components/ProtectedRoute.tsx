@@ -16,15 +16,17 @@ export function ProtectedRoute() {
       .then(({ data }) => setOnboardingDone(!!data && data.length > 0 && !!data[0]?.nome))
   }, [session])
 
-  if (loading || (session && onboardingDone === null)) {
+  if (loading) return null
+
+  if (!session) return <Navigate to="/" replace />
+
+  if (onboardingDone === null) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
-
-  if (!session) return <Navigate to="/login" replace />
   if (!onboardingDone) return <Navigate to="/onboarding" replace />
   return <Outlet />
 }
